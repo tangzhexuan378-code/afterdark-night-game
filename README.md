@@ -11,6 +11,9 @@
 - 50 种鸡尾酒、啤酒、葡萄酒、清酒、白酒、烈酒及无酒精选
 - 100 个细节剧情种子：入场、相遇、升温、结局各 25 个
 - 多结局：搭讪、心动、明确同意后的 kiss、交换联系方式、独处、朋友同行、安全离场等
+- 七维手动脸部与穿搭建模；真人照片仅在本机作为头像预览，不做人脸识别
+- 14 个虚构成年配对档案，包含建模、身高、职业、音乐、酒、交流方式与边界
+- 结局提供建模、身高、音乐、酒类和互动选择的逐项原因，以及始终高于 50 的候选池游戏兼容度
 
 ## 隐私与安全
 
@@ -22,6 +25,9 @@
 - [Spotify 2026 Songs of Summer](https://newsroom.spotify.com/2026-05-29/songs-of-summer-predictions/)
 - [International Bartenders Association Cocktails](https://iba-world.com/cocktails/)
 - [腾讯音乐榜](https://chart.tencentmusic.com/)
+- [Nature Human Behaviour：伴侣特征相似性研究](https://www.nature.com/articles/s41562-023-01672-z)
+- [音乐与亲密关系综述](https://pmc.ncbi.nlm.nih.gov/articles/PMC10899422/)
+- [NIAAA：酒精与大脑判断](https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics/health-topics-alcohol-and-brain)
 
 中国目前没有覆盖所有酒吧和夜店的统一“全国 Top 30”官方榜单。本项目以 2026 Asia’s 50 Best Bars 的中国上榜酒吧为锚点，补充城市知名场所，作为游戏编辑池；不宣称是官方全国排名。营业状态和入场规则请在现实出行前核实。
 
