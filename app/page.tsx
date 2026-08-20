@@ -1,13 +1,14 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { BARS, DRINKS, MATCH_PROFILES, MUSIC, STORY_SEEDS, type MatchProfile, type StorySeed } from "./data";
+import { BARS, DRINKS, MATCH_PROFILES, MUSIC, STORY_SEEDS, type MatchProfile } from "./data";
+import { ENDING_TEMPLATES, INTERACTION_QUESTIONS, chooseEnding, chooseQuestion, type GameChoice } from "./game-content";
 
 type Stage = "landing" | "setup" | "game" | "ending";
 type Persona = "spark" | "mystery" | "chill";
 type Stats = { spark: number; energy: number; clarity: number };
-type Choice = { label: string; note: string; delta: Partial<Stats>; action: string };
-type LibraryTab = "bars" | "music" | "drinks" | "stories";
+type Choice = GameChoice;
+type LibraryTab = "bars" | "music" | "drinks" | "stories" | "questions" | "endings" | "matches";
 type PlayerGender = "woman" | "man" | "nonbinary" | "private";
 type Interest = "opposite" | "women" | "men" | "all" | "none";
 type HeightPreference = "similar" | "taller" | "shorter" | "none";
@@ -248,11 +249,11 @@ export default function Home() {
   const [barIndex, setBarIndex] = useState(0);
   const [round, setRound] = useState(0);
   const [fortune, setFortune] = useState(0);
-  const [storyIndexes, setStoryIndexes] = useState([0, 25, 50, 75]);
+  const [questionIds, setQuestionIds] = useState<string[]>(["Q01"]);
   const [matchIndex, setMatchIndex] = useState(-1);
   const [stats, setStats] = useState<Stats>({ spark: 2, energy: 2, clarity: 8 });
-  const [history, setHistory] = useState<{ time: string; text: string }[]>([]);
-  const [ending, setEnding] = useState({ tag: "", title: "", text: "" });
+  const [history, setHistory] = useState<{ time: string; text: string; action: string; questionId: string }[]>([]);
+  const [ending, setEnding] = useState({ id:"", tag: "", title: "", text: "", reason:"" });
 
   const music = MUSIC[musicIndex];
   const drink = DRINKS[drinkIndex];
@@ -261,7 +262,7 @@ export default function Home() {
   const matchDisplay = match ? (match.gender === "woman" ? "匹配女生" : match.gender === "man" ? "匹配男生" : "匹配对象") : "";
   const matchSymbol = match ? (match.gender === "woman" ? "♀" : match.gender === "man" ? "♂" : "·") : "";
   const anonymousMeetScene = match ? match.meetScene : "";
-  const seed = STORY_SEEDS[storyIndexes[round]] ?? STORY_SEEDS[round * 25];
+  const question = INTERACTION_QUESTIONS.find((item)=>item.id===questionIds[round]) ?? INTERACTION_QUESTIONS[0];
   const personaName = PERSONAS.find((p) => p.id === persona)?.name ?? "谜面";
   const modelSummary = `${feature("faceShape",faceShape).label}脸 · ${feature("eyes",eyes).label} · ${feature("brows",brows).label} · ${feature("nose",nose).label} · ${feature("lips",lips).label} · ${feature("hair",hair).label}`;
   const finalMatchParts = match ? matchParts(match,music.style,music.energy,drink.family,drink.abv,persona,height,heightPreference,stats) : [];
@@ -292,10 +293,11 @@ export default function Home() {
     return "你的视线刚好越过杯沿，灯光把轮廓切成安静的一笔。";
   }, [height]);
 
-  const fillStory = (story: StorySeed) => story.text
+  const fillGameText = (text: string) => text
     .replaceAll("{bar}", bar.name).replaceAll("{city}", bar.city)
     .replaceAll("{track}", music.title).replaceAll("{drink}", drink.name)
-    .replaceAll("{name}", nickname || "夜行者");
+    .replaceAll("{name}", nickname || "夜行者")
+    .replaceAll("{match}", matchDisplay || "一位陌生人");
 
   const uploadAvatar = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -334,7 +336,7 @@ export default function Home() {
   };
 
   const shareSite = async () => {
-    const shareData = { title: "AFTERDARK — 今晚，会发生什么？", text: "30 家真实酒吧 × 50 种音乐 × 50 种酒类 × 100 个剧情。", url: publicSiteUrl };
+    const shareData = { title: "AFTERDARK — 今晚，会发生什么？", text: "30 家真实酒吧 × 50 音乐 × 50 酒类 × 50 互动题 × 50 结局 × 50 匿名配对。", url: publicSiteUrl };
     try {
       if (navigator.share) await navigator.share(shareData);
       else { await navigator.clipboard.writeText(publicSiteUrl); setShareStatus("链接已复制，可直接粘贴到微信聊天"); }
@@ -347,15 +349,16 @@ export default function Home() {
       energy: clamp(2 + music.energy + (persona === "spark" ? 1 : 0)),
       clarity: clamp(9 - Math.round(drink.abv / 8)),
     };
+    const nextFortune = randomIndex(50);
     const ranked = MATCH_PROFILES
       .map((profile, index) => ({ index, profile, score: matchScore(matchParts(profile,music.style,music.energy,drink.family,drink.abv,persona,height,heightPreference,initialStats)) }))
       .filter(({profile}) => genderFits(profile,playerGender,interest))
       .sort((a,b) => b.score - a.score);
-    const shortlist = ranked.slice(0,Math.min(3,ranked.length));
+    const firstQuestion = chooseQuestion({phase:0,persona,stats:initialStats,musicEnergy:music.energy,drinkAbv:drink.abv,fortune:nextFortune,usedIds:[]});
     setBarIndex(randomIndex(BARS.length));
-    setFortune(randomIndex(7));
-    setStoryIndexes([0, 1, 2, 3].map((phase) => phase * 25 + randomIndex(25)));
-    setMatchIndex(shortlist.length ? shortlist[randomIndex(shortlist.length)].index : -1);
+    setFortune(nextFortune);
+    setQuestionIds([firstQuestion.id]);
+    setMatchIndex(ranked[0]?.index ?? -1);
     setStats(initialStats);
     setHistory([]);
     setRound(0);
@@ -363,56 +366,11 @@ export default function Home() {
     void uploadConsentedPhoto();
   };
 
-  const choices = useMemo<Choice[]>(() => {
-    if (round === 0) return [
-      { label: "向灯光更亮的地方走", note: "让音乐先替你开场", delta: { spark: 1, energy: 2 }, action: "light" },
-      { label: "坐到吧台，先观察三分钟", note: "把安静也当作一种选择", delta: { clarity: 2 }, action: "watch" },
-      { label: "问调酒师：今晚有什么故事？", note: "从一个真实问题开始", delta: { spark: 1, clarity: 1 }, action: "bartender" },
-    ];
-    if (round === 1) return [
-      { label: "接住话题，再问一个具体问题", note: "让搭讪变成真正的对话", delta: { spark: 2, energy: 1 }, action: "talk" },
-      { label: "把朋友也拉进话题", note: "让气氛更安全、松弛", delta: { spark: 1, clarity: 1 }, action: "group" },
-      { label: "礼貌点头，继续听完整首歌", note: "今晚也可以只属于自己", delta: { energy: -1, clarity: 2 }, action: "quiet" },
-    ];
-    if (round === 2) return [
-      { label: "一起去舞池，先确认彼此舒服", note: "靠近，但保留随时说停的自由", delta: { spark: 2, energy: 2 }, action: "dance" },
-      { label: "换成气泡水，去安静处聊", note: "清醒也能让暧昧升温", delta: { spark: 2, clarity: 2 }, action: "water" },
-      { label: "享受自己的节奏，暂时不社交", note: "让夜晚向内生长", delta: { energy: -1, clarity: 2 }, action: "solo" },
-    ];
-    return [
-      { label: stats.spark >= 6 ? "问：我可以吻你吗？" : "问：要不要交换歌单？", note: "答案可以是愿意，也可以是慢一点", delta: { clarity: 1 }, action: stats.spark >= 6 ? "kiss" : "playlist" },
-      { label: "交换联系方式，约在白天见", note: "把可能性留到明天", delta: { spark: 1, clarity: 2 }, action: "contact" },
-      { label: "叫车回家，把歌听完", note: "完整地结束自己的夜晚", delta: { clarity: 2 }, action: "home" },
-    ];
-  }, [round, stats.spark]);
+  const choices: Choice[] = question.choices;
 
-  const finish = (action: string, next: Stats) => {
-    if (action === "kiss") {
-      const mutual = next.spark + (fortune % 3) >= 8;
-      setEnding(mutual ? {
-        tag: "MUTUAL SPARK · 明确同意",
-        title: "一个被问过、也被回答过的 kiss",
-        text: `对方看着你，点了点头。这个吻很短，像 ${music.title} 结束前那一下鼓点。你们没有许诺未来，但都知道这不是误会。`,
-      } : {
-        tag: "SOFT BOUNDARY · 被尊重的答案",
-        title: "“我想慢一点。”你说：当然。",
-        text: `边界没有毁掉气氛，反而让这段相遇变得可信。你们交换了歌单，在 ${bar.name} 门口说晚安。`,
-      });
-    } else if (action === "contact" || action === "playlist") {
-      setEnding({
-        tag: "TO BE CONTINUED · 轻微心动",
-        title: "白天见，或许比凌晨更浪漫",
-        text: `你们交换了${action === "playlist" ? "歌单" : "联系方式"}。没有急着定义关系，只约好下次在没有酒精和重低音的地方，把话继续聊完。`,
-      });
-    } else {
-      setEnding({
-        tag: next.spark >= 5 ? "A GOOD EXIT · 余韵" : "QUIET LUXURY · 独处结局",
-        title: next.spark >= 5 ? "你带着一点心动，准时离场" : "没有艳遇，也是一场完整的夜晚",
-        text: next.spark >= 5
-          ? `车门关上时，${bar.city} 的灯从窗外退后。有人记住了你的名字，而你保留了清醒和期待。`
-          : `你安静喝完一杯，认真听完几首歌，并在想离开时离开。不是每个夜晚都要被别人证明。`,
-      });
-    }
+  const finish = (action: string, next: Stats, nextHistory: typeof history) => {
+    const template = chooseEnding({action,stats:next,fortune,hasMatch:Boolean(match),historyActions:nextHistory.map((item)=>item.action)});
+    setEnding({id:template.id,tag:template.tag,title:fillGameText(template.title),text:fillGameText(template.text),reason:template.reason});
     setStage("ending");
   };
 
@@ -422,10 +380,17 @@ export default function Home() {
       energy: clamp(stats.energy + (choice.delta.energy ?? 0)),
       clarity: clamp(stats.clarity + (choice.delta.clarity ?? 0)),
     };
+    const item = {time:["22:47","23:26","00:18","01:12"][round],text:choice.label,action:choice.action,questionId:question.id};
+    const nextHistory = [...history,item];
     setStats(next);
-    setHistory((items) => [...items, { time: ["22:47", "23:26", "00:18", "01:12"][round], text: choice.label }]);
-    if (round === 3) finish(choice.action, next);
-    else setRound((value) => value + 1);
+    setHistory(nextHistory);
+    if (round === 3) finish(choice.action,next,nextHistory);
+    else {
+      const nextPhase = (round+1) as 1|2|3;
+      const nextQuestion = chooseQuestion({phase:nextPhase,persona,stats:next,lastAction:choice.action,musicEnergy:music.energy,drinkAbv:drink.abv,fortune,usedIds:questionIds});
+      setQuestionIds((items)=>[...items,nextQuestion.id]);
+      setRound((value)=>value+1);
+    }
   };
 
   const shareEnding = async () => {
@@ -453,7 +418,7 @@ export default function Home() {
           <div className="orb orb-one" /><div className="orb orb-two" />
           <p className="eyebrow">CHINA NIGHTLIFE · INTERACTIVE FICTION</p>
           <h1>今晚，<em>会发生什么？</em></h1>
-          <p className="lede">抽取 30 家真实热门酒吧中的一站，从 50 种音乐与 50 种酒类中做选择。100 个细节剧情种子，会随你的每一步重新组合。</p>
+          <p className="lede">抽取 30 家真实热门酒吧中的一站，从 50 种音乐与 50 种酒类中选择。系统再从 50 个两性互动问题、50 个结局和 50 个匿名成年配对档案中，为你的每一步动态推荐。</p>
           <div className="landing-cta">
             <button className="primary" disabled={!adult} onClick={() => setStage("setup")}>开始今晚 <span>↗</span></button>
             <button className="share-button" onClick={() => void shareSite()}>分享给微信好友</button>
@@ -464,7 +429,9 @@ export default function Home() {
             <button onClick={() => openLibrary("bars")}><b>30</b><span>真实目的地</span></button>
             <button onClick={() => openLibrary("music")}><b>50</b><span>音乐风格与曲目</span></button>
             <button onClick={() => openLibrary("drinks")}><b>50</b><span>酒类与无酒精选</span></button>
-            <button onClick={() => openLibrary("stories")}><b>100</b><span>细节剧情种子</span></button>
+            <button onClick={() => openLibrary("questions")}><b>50</b><span>动态互动问题</span></button>
+            <button onClick={() => openLibrary("endings")}><b>50</b><span>可解释结局</span></button>
+            <button onClick={() => openLibrary("matches")}><b>50</b><span>匿名配对档案</span></button>
           </div>
           <p className="disclaimer">娱乐性虚构体验，不是现实预测。照片只在你的设备内预览，不上传、不做人脸识别。</p>
         </section>
@@ -552,13 +519,13 @@ export default function Home() {
             <div className="now-playing"><span>♫</span><div><small>NOW PLAYING · {music.style}</small><b>{music.title}</b><p>{music.artist}</p></div><a href={spotifyUrl(music.title,music.artist,music.id)} target="_blank" rel="noreferrer" aria-label="在 Spotify 打开">↗</a></div>
           </aside>
           <div className="story-stage">
-            <div className="story-progress">{[0,1,2,3].map((item) => <i key={item} className={item <= round ? "active" : ""}/>)}<span>CHAPTER {round + 1} / 4 · STORY #{storyIndexes[round] + 1}</span></div>
+            <div className="story-progress">{[0,1,2,3].map((item) => <i key={item} className={item <= round ? "active" : ""}/>)}<span>CHAPTER {round + 1} / 4 · {question.id} / 50</span></div>
             <div className="time-stamp">{["22:47", "23:26", "00:18", "01:12"][round]}</div>
-            <p className="eyebrow">{seed.tag}</p><h2>{seed.title}</h2>
-            <p className="story-copy">{round === 0 ? `${heightLine} ` : ""}{fillStory(seed)}{round === 1 && match ? ` ${anonymousMeetScene}` : ""}</p>
+            <p className="eyebrow">{question.theme} · DYNAMIC QUESTION</p><h2>{question.title}</h2>
+            <p className="story-copy">{round === 0 ? `${heightLine} ` : ""}{fillGameText(question.text)}{round === 1 && match ? ` ${anonymousMeetScene}` : ""}</p>
             <div className="choice-list">{choices.map((choice, index) => <button key={choice.action} onClick={() => choose(choice)}><span>{String(index + 1).padStart(2,"0")}</span><div><b>{choice.label}</b><small>{choice.note}</small></div><i>→</i></button>)}</div>
             {history.length > 0 && <details className="night-log"><summary>今晚已发生 · {history.length}</summary>{history.map((item, index) => <p key={index}><time>{item.time}</time>{item.text}</p>)}</details>}
-            <p className="fiction-note">从 100 个细节剧情种子中随机组合。这是互动小说，不预测现实中的你；任何亲密互动都需要清楚、持续、可撤回的同意。</p>
+            <p className="fiction-note">当前问题从 50 个两性互动情境中，根据人格、音乐能量、酒精度、清醒度和上一题行为动态推荐。它是互动小说，不预测现实；任何亲密互动都需要清楚、持续、可撤回的同意。</p>
           </div>
         </section>
       )}
@@ -566,7 +533,7 @@ export default function Home() {
       {stage === "ending" && (
         <section className="ending-screen grid-bg">
           <div className="ending-main">
-            <div className="ending-ticket"><div className="ticket-top"><span>YOUR NIGHT · {bar.city}</span><span>#{String(fortune * 137 + barIndex).padStart(4,"0")}</span></div><div className="ending-mark">{ending.title.includes("kiss") ? "KISS" : ending.tag.includes("QUIET") ? "SOLO" : "NEXT"}</div><p className="eyebrow">{ending.tag}</p><h1>{ending.title}</h1><p>{ending.text}</p><div className="ending-meta"><div><small>WHERE</small><b>{bar.name}</b></div><div><small>TRACK</small><b>{music.title}</b></div><div><small>DRINK</small><b>{drink.name}</b></div></div><div className="ending-actions"><button className="primary" onClick={shareEnding}>分享结局 <span>↗</span></button><button className="secondary" onClick={() => {setStage("setup");setHistory([]);setRound(0);}}>再玩一晚</button></div></div>
+            <div className="ending-ticket"><div className="ticket-top"><span>YOUR NIGHT · {bar.city}</span><span>{ending.id} / 50 · #{String(fortune * 137 + barIndex).padStart(4,"0")}</span></div><div className="ending-mark">{ending.title.includes("吻") ? "KISS" : ending.tag.includes("QUIET") ? "SOLO" : "NEXT"}</div><p className="eyebrow">{ending.tag}</p><h1>{ending.title}</h1><p>{ending.text}</p><p className="ending-template-reason"><b>为什么得到这个结局：</b>{ending.reason}</p><div className="ending-meta"><div><small>WHERE</small><b>{bar.name}</b></div><div><small>TRACK</small><b>{music.title}</b></div><div><small>DRINK</small><b>{drink.name}</b></div></div><div className="ending-actions"><button className="primary" onClick={shareEnding}>分享结局 <span>↗</span></button><button className="secondary" onClick={() => {setStage("setup");setHistory([]);setRound(0);setQuestionIds(["Q01"]);}}>再玩一晚</button></div></div>
 
             <section className="logic-report">
               <header><p className="eyebrow">WHY THIS NIGHT · 可解释结果</p><h2>这场推演为什么这样发生</h2><p>以下只解释游戏变量如何组合，不把外貌、身高、音乐或酒类当成现实人格诊断。</p></header>
@@ -581,10 +548,10 @@ export default function Home() {
                 <div className="match-profile-head"><div className="match-avatar">{matchSymbol}</div><div><span>FICTIONAL ADULT PROFILE · 匿名虚构成年角色</span><h2>{matchDisplay}，{match.age} 岁</h2><p>{match.city} · {match.height}cm · {match.role}</p></div><strong>{finalMatchScore}%<small>游戏兼容度</small></strong></div>
                 <div className="match-facts"><div><small>建模</small><b>{match.face}</b><p>{match.hair}；{match.outfit}</p></div><div><small>音乐</small><b>{match.favoriteTrack}</b><p>{match.musicStyles.join(" · ")} · 能量 {match.musicEnergy}/5</p></div><div><small>酒</small><b>{match.favoriteDrink}</b><p>{match.drinkFamilies.join(" · ")} · 约 {match.drinkAbv}% ABV</p></div><div><small>交流方式</small><b>{match.conversation}</b><p>边界：{match.boundary}</p></div></div>
                 <div className="match-scene"><small>你们如何遇见</small><p>{anonymousMeetScene}</p></div>
-                <div className="score-method"><h3>为什么是 {finalMatchScore}%</h3><p>系统先按你填写的互动对象与身高偏好，从 14 个虚构成年档案中筛出前三名，再随机选一位，所以展示分数以 52 为候选池基础值并保证超过 50。它是可解释的游戏指数，不是现实搭讪成功率或关系预测。</p><div>{finalMatchParts.map(part=><article key={part.label}><span>{part.label}</span><b>+{part.points}</b><p>{part.reason}</p></article>)}</div></div>
+                <div className="score-method"><h3>为什么是 {finalMatchScore}%</h3><p>系统先按你填写的互动对象与身高偏好，从 50 个匿名虚构成年档案中筛选，再依据音乐、酒饮节奏、社交模式、身高偏好和本局反馈推荐得分最高的一位。分数以 52 为候选池基础值并保证超过 50；它是可解释的游戏指数，不是现实搭讪成功率或关系预测。</p><div>{finalMatchParts.map(part=><article key={part.label}><span>{part.label}</span><b>+{part.points}</b><p>{part.reason}</p></article>)}</div></div>
               </section>}
 
-              <div className="evidence-box"><h3>推演依据与边界</h3><p>伴侣相似性研究支持把“共享兴趣”作为轻量线索，但也强调共享环境与混杂因素；音乐研究支持把共同音乐偏好当作社交话题和亲近线索。酒精资料则支持把判断力下降单独建模。因此本游戏不从脸预测性格，也不把兼容度冒充统计概率。</p><div><a href="https://www.nature.com/articles/s41562-023-01672-z" target="_blank" rel="noreferrer">Nature Human Behaviour · 伴侣特征相似性 ↗</a><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10899422/" target="_blank" rel="noreferrer">音乐与亲密关系综述 ↗</a><a href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">IBA 官方酒类资料 ↗</a><a href="https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics/health-topics-alcohol-and-brain" target="_blank" rel="noreferrer">NIAAA · 酒精与判断 ↗</a><a href="https://rainn.org/strategies-to-reduce-risk-increase-safety/alcohol-safety/" target="_blank" rel="noreferrer">RAINN · 酒精与同意 ↗</a></div></div>
+              <div className="evidence-box"><h3>推演依据与边界</h3><p>问题采用由轻到深、互惠自我披露的结构，但不会照搬研究问题，也不声称能让人“必然相爱”。伴侣相似性与共同音乐偏好只作为轻量线索；酒精只降低清醒指标。因此本游戏不从脸预测性格，也不把兼容度冒充现实概率。</p><div><a href="https://doi.org/10.1177/0146167297234003" target="_blank" rel="noreferrer">Aron 等 · 递进式亲近研究 ↗</a><a href="https://www.nature.com/articles/s41562-023-01672-z" target="_blank" rel="noreferrer">Nature Human Behaviour · 伴侣特征相似性 ↗</a><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10899422/" target="_blank" rel="noreferrer">音乐与亲密关系综述 ↗</a><a href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">IBA 官方酒类资料 ↗</a><a href="https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics/health-topics-alcohol-and-brain" target="_blank" rel="noreferrer">NIAAA · 酒精与判断 ↗</a><a href="https://rainn.org/strategies-to-reduce-risk-increase-safety/alcohol-safety/" target="_blank" rel="noreferrer">RAINN · 酒精与同意 ↗</a></div></div>
             </section>
           </div>
           <aside className="ending-stats"><small>NIGHT PROFILE</small><h3>{nickname} 的夜间曲线</h3><div><span>心动</span><b>{stats.spark}</b></div><div><span>能量</span><b>{stats.energy}</b></div><div><span>清醒</span><b>{stats.clarity}</b></div>{match && <div className="match-score-mini"><span>兼容度</span><b>{finalMatchScore}%</b></div>}<p>{modelMode === "photo" && avatar ? "你的照片只在本机内存中预览，从未上传。" : "你没有使用真人照片；结果来自手动特征。"} 关闭页面后，故事不会被服务器保存。</p></aside>
@@ -593,10 +560,13 @@ export default function Home() {
 
       <footer className="global-footer"><span>18+ · 匿名访问计数 · 照片仅主动授权上传 · 娱乐性虚构</span><div><a href="#admin">站长后台</a><a href="https://www.theworlds50best.com/bars/best-in-asia/list/1-50" target="_blank" rel="noreferrer">酒吧来源</a><a href="https://newsroom.spotify.com/2026-05-29/songs-of-summer-predictions/" target="_blank" rel="noreferrer">音乐来源</a><a href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">酒款来源</a></div></footer>
 
-      {showLibrary && <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowLibrary(false)}><section className="data-modal" role="dialog" aria-modal="true" aria-labelledby="library-title" onMouseDown={(e) => e.stopPropagation()}><header><div><p className="eyebrow">RESEARCHED GAME LIBRARY</p><h2 id="library-title">真实数据图鉴</h2></div><button onClick={() => setShowLibrary(false)} aria-label="关闭">×</button></header><nav className="library-tabs">{(["bars","music","drinks","stories"] as LibraryTab[]).map((tab) => <button key={tab} className={libraryTab === tab ? "active" : ""} onClick={() => setLibraryTab(tab)}>{tab === "bars" ? "酒吧 30" : tab === "music" ? "音乐 50" : tab === "drinks" ? "酒类 50" : "剧情 100"}</button>)}</nav>
+      {showLibrary && <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowLibrary(false)}><section className="data-modal" role="dialog" aria-modal="true" aria-labelledby="library-title" onMouseDown={(e) => e.stopPropagation()}><header><div><p className="eyebrow">RESEARCHED GAME LIBRARY</p><h2 id="library-title">真实数据图鉴</h2></div><button onClick={() => setShowLibrary(false)} aria-label="关闭">×</button></header><nav className="library-tabs">{(["bars","music","drinks","questions","endings","matches","stories"] as LibraryTab[]).map((tab) => <button key={tab} className={libraryTab === tab ? "active" : ""} onClick={() => setLibraryTab(tab)}>{tab === "bars" ? "酒吧 30" : tab === "music" ? "音乐 50" : tab === "drinks" ? "酒类 50" : tab === "questions" ? "问题 50" : tab === "endings" ? "结局 50" : tab === "matches" ? "匿名配对 50" : "剧情素材 100"}</button>)}</nav>
         {libraryTab === "bars" && <><p className="modal-note">中国没有覆盖所有酒吧与夜店的统一“全国 Top 30”官方榜单。本池以 2026 Asia’s 50 Best Bars 的中国上榜酒吧为锚点，补充城市知名场所；不宣称是官方全国排名。营业状态与入场规则请出行前核实。</p><div className="data-list bars-list">{BARS.map((item,index) => <article key={`${item.city}-${item.name}`}><span>{String(index+1).padStart(2,"0")}</span><div><b>{item.name}</b><small>{item.city} · {item.style}</small></div><i>{item.badge}</i></article>)}</div><a className="source-link" href="https://mmx.prnewswire.com/media/MS1890898/A50BB2026-Results-The-List.pdf" target="_blank" rel="noreferrer">查看 2026 Asia’s 50 Best Bars 原始榜单 ↗</a></>}
         {libraryTab === "music" && <><p className="modal-note">前 30 首来自 Spotify 全球编辑的 2026 Songs of Summer 推荐及当季代表曲；风格介绍参考音乐资料库的历史与声音特征，并改写成新手友好的中文。点击卡片可前往 Spotify。</p><div className="data-list music-list">{MUSIC.map((item,index) => <a key={`${item.title}-${index}`} href={spotifyUrl(item.title,item.artist,item.id)} target="_blank" rel="noreferrer"><span>{String(index+1).padStart(2,"0")}</span><div><b>{item.title}</b><small>{item.artist}</small><p>{item.description}</p></div><i>{item.style} · E{item.energy}</i></a>)}</div><div className="modal-sources"><a className="source-link" href="https://newsroom.spotify.com/2026-05-29/songs-of-summer-predictions/" target="_blank" rel="noreferrer">Spotify 2026 夏日官方推荐 ↗</a><a className="source-link" href="https://www.allmusic.com/style/house-ma0000002651" target="_blank" rel="noreferrer">AllMusic 风格资料示例 ↗</a></div></>}
         {libraryTab === "drinks" && <><p className="modal-note">覆盖 IBA 忘不了、当代经典与新时代鸡尾酒，并加入啤酒、葡萄酒、清酒、白酒、纯饮烈酒和无酒精选。介绍说明原料、典型风味与常见误区；ABV 为估算值，实际配方以酒吧为准。</p><div className="data-list drinks-list">{DRINKS.map((item,index) => <article key={item.name}><span>{String(index+1).padStart(2,"0")}</span><div><b>{item.name}</b><small>{item.base}</small><p>{item.description}</p></div><i>{item.family} · {item.abv}%</i></article>)}</div><div className="modal-sources"><a className="source-link" href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">IBA 官方鸡尾酒资料 ↗</a><a className="source-link" href="https://www.brewersassociation.org/edu/brewers-association-beer-style-guidelines/" target="_blank" rel="noreferrer">Brewers Association 2026 风格指南 ↗</a><a className="source-link" href="https://www.wsetglobal.com/knowledge-centre/" target="_blank" rel="noreferrer">WSET 酒类知识中心 ↗</a><a className="source-link" href="https://www.japansake.or.jp/" target="_blank" rel="noreferrer">日本酒造组合中央会 ↗</a></div></>}
+        {libraryTab === "questions" && <><p className="modal-note">50 个问题按开场、了解、升温和收尾四阶段设计。系统不会顺序照本宣科，而会根据人格、音乐能量、酒精度、当前清醒度与上一题选择推荐下一题。</p><div className="data-list question-list">{INTERACTION_QUESTIONS.map((item)=><article key={item.id}><span>{item.id}</span><div><b>{item.title}</b><small>CH.{item.phase+1} · {item.theme}</small><p>{item.text}</p><p className="choice-preview">{item.choices.map((choice,index)=>`${index+1}. ${choice.label}`).join("　")}</p></div><i>{item.affinity.map((p)=>p==="spark"?"聚光":p==="mystery"?"谜面":"松弛").join(" · ")}</i></article>)}</div><div className="modal-sources"><a className="source-link" href="https://doi.org/10.1177/0146167297234003" target="_blank" rel="noreferrer">Aron 等：递进式互惠自我披露研究 ↗</a><a className="source-link" href="https://rainn.org/strategies-to-reduce-risk-increase-safety/alcohol-safety/" target="_blank" rel="noreferrer">RAINN：酒精与同意 ↗</a></div></>}
+        {libraryTab === "endings" && <><p className="modal-note">50 个结局覆盖明确同意后的亲密、软性拒绝、白天续集、歌单联系、安全回家、朋友结局、边界修复与完整独处。结局由最后行动和四题累计结果共同筛选。</p><div className="data-list ending-list">{ENDING_TEMPLATES.map((item)=><article key={item.id}><span>{item.id}</span><div><b>{item.title}</b><small>{item.tag}</small><p>{item.text}</p><p className="choice-preview">依据：{item.reason}</p></div><i>{item.actions.join(" · ")}</i></article>)}</div></>}
+        {libraryTab === "matches" && <><p className="modal-note">50 个匿名虚构成年档案：24 位女生、24 位男生与 2 位非二元对象。页面不显示姓名，只依据用户主动填写的互动对象偏好筛选，并解释音乐、酒、社交节奏、身高偏好和本局反馈。</p><div className="data-list match-list">{MATCH_PROFILES.map((item)=><article key={item.id}><span>{item.id}</span><div><b>{item.gender==="woman"?"匿名女生":item.gender==="man"?"匿名男生":"匿名对象"} · {item.age} 岁 · {item.height}cm</b><small>{item.city} · {item.role} · {item.vibe==="spark"?"聚光体":item.vibe==="mystery"?"谜面":"松弛派"}</small><p>{item.face}；{item.hair}；{item.outfit}</p><p className="choice-preview">音乐：{item.favoriteTrack}　酒：{item.favoriteDrink}　边界：{item.boundary}</p></div><i>{item.id}</i></article>)}</div></>}
         {libraryTab === "stories" && <><p className="modal-note">100 个独立剧情种子按入场、相遇、升温与结局四阶段各 25 个编写，覆盖搭讪、独处、朋友、安全、边界、舞池、调酒师、交通与亲密同意等情境。</p><div className="data-list story-list">{STORY_SEEDS.map((item,index) => <article key={`${item.phase}-${item.title}-${index}`}><span>{String(index+1).padStart(3,"0")}</span><div><b>{item.title}</b><small>{item.text}</small></div><i>CH.{item.phase+1} · {item.tag}</i></article>)}</div></>}
       </section></div>}
     </main>

@@ -44,7 +44,7 @@ export const BARS: Bar[] = [
 ];
 
 // All profiles below are fictional adults created for the game. They do not represent real people.
-export const MATCH_PROFILES: MatchProfile[] = [
+const BASE_MATCH_PROFILES: MatchProfile[] = [
   { id:"F01",gender:"woman",age:26,city:"上海",height:168,face:"偏椭圆脸、细长杏眼、平直眉、柔和鼻梁、唇峰清晰",hair:"下颌线短发，深棕色",outfit:"黑色无袖上衣、银色耳饰、低跟短靴",role:"展览项目经理",vibe:"mystery",musicStyles:["House","Disco House","Tech House","French House"],musicEnergy:4,favoriteTrack:"Talk To You",drinkFamilies:["苦甜经典","低度开胃","现代苦甜"],favoriteDrink:"Negroni",drinkAbv:24,conversation:"会从 DJ 的过渡方式聊到最近看过的展览，不抢话，但会追问细节。",boundary:"慢热；靠近前会明确询问，偏好先交换歌单。",meetScene:"她在吧台另一端辨认出同一段采样，等你看过来才举杯示意。" },
   { id:"F02",gender:"woman",age:24,city:"广州",height:163,face:"圆脸、内双上扬眼、自然弯眉、小巧鼻尖、饱满下唇",hair:"高马尾，带一点自然卷",outfit:"短款夹克、宽腿裤、彩色运动鞋",role:"建筑设计师",vibe:"spark",musicStyles:["Amapiano","Afrobeats","Afropop","Amapiano Pop"],musicEnergy:5,favoriteTrack:"Kakalika",drinkFamilies:["龙舌兰长饮","清爽长饮","无酒精"],favoriteDrink:"Paloma",drinkAbv:12,conversation:"擅长用一个很普通的问题打开话题，聊城市空间时语速会明显变快。",boundary:"只接受清楚回应；喝到第二杯会主动换水。",meetScene:"她刚帮一群朋友拍完合照，转身问你要不要一起听副歌。" },
   { id:"F03",gender:"woman",age:28,city:"深圳",height:172,face:"长椭圆脸、深眼窝杏眼、浓淡适中的挑眉、直鼻、薄厚均衡唇",hair:"锁骨直发，中分",outfit:"深灰西装、白色背心、窄框眼镜",role:"产品研究员",vibe:"mystery",musicStyles:["Neo-Soul","Alternative R&B","Alté","R&B"],musicEnergy:2,favoriteTrack:"Earrings",drinkFamilies:["自然葡萄酒","纯饮烈酒","咖啡鸡尾酒"],favoriteDrink:"Natural Red Wine",drinkAbv:13,conversation:"先观察，再从一句歌词谈到人的选择；不喜欢被连续追问私人信息。",boundary:"偏好安静区交流，明确拒绝被拍照。",meetScene:"她在窗边给朋友发到家提醒，手机扣下后才和你开始聊天。" },
@@ -59,6 +59,64 @@ export const MATCH_PROFILES: MatchProfile[] = [
   { id:"M06",gender:"man",age:27,city:"长沙",height:173,face:"偏方脸、长眼型、粗平眉、鼻梁中等、宽唇",hair:"短碎发",outfit:"宽肩飞行夹克、银色戒指、黑色运动鞋",role:"独立厂牌运营",vibe:"spark",musicStyles:["Hip-Hop","华语 Hip-Hop","Dance Pop","Funk Pop"],musicEnergy:5,favoriteTrack:"大展鸿图",drinkFamilies:["中国白酒","咸鲜鸡尾酒","无酒精"],favoriteDrink:"Baijiu",drinkAbv:42,conversation:"会聊歌词和方言，但明确把高度酒当作慢饮品鉴，不用拼酒证明关系。",boundary:"高酒精选择只品一小杯，之后改喝水。",meetScene:"他听见你认出一段中文采样，回头确认后才加入话题。" },
   { id:"X01",gender:"nonbinary",age:26,city:"上海",height:174,face:"窄椭圆脸、上扬眼、细直眉、小巧直鼻、唇形偏薄",hair:"银灰色齐耳短发",outfit:"解构衬衫、宽腿裤、几何耳夹",role:"互动艺术创作者",vibe:"mystery",musicStyles:["Electropop","Synthpop","Electroclash","Indietronica"],musicEnergy:4,favoriteTrack:"Self Aware",drinkFamilies:["无酒精","花香经典","草本短饮"],favoriteDrink:"Zero-proof Tonic",drinkAbv:0,conversation:"关注声音与身体距离，喜欢谈空间如何改变人的行为。",boundary:"先确认称呼与代词；不把暧昧等同于身体接触。",meetScene:"匹配对象在光影装置旁停下，问你觉得它像海浪还是呼吸。" },
   { id:"X02",gender:"nonbinary",age:28,city:"成都",height:171,face:"圆润鹅蛋脸、内双圆眼、自然弯眉、圆鼻尖、微笑唇",hair:"黑色中长卷发",outfit:"复古针织背心、白衬衫、乐福鞋",role:"书店策划",vibe:"chill",musicStyles:["Neo-Soul","City Pop","Indie Folk","Dream Pop"],musicEnergy:2,favoriteTrack:"BIRDS OF A FEATHER",drinkFamilies:["自然葡萄酒","咖啡鸡尾酒","无酒精"],favoriteDrink:"Natural Red Wine",drinkAbv:13,conversation:"能在热闹中保留安静，喜欢交换书、歌和城市散步路线。",boundary:"不接受突然拍照或公开发布互动内容。",meetScene:"匹配对象在吧台读完一页才合上书，确认你也读过同一位作者。" },
+];
+
+type ExtraProfileSeed = Pick<MatchProfile,"id"|"gender"|"age"|"city"|"height"|"role"|"vibe"|"musicStyles"|"musicEnergy"|"favoriteTrack"|"drinkFamilies"|"favoriteDrink"|"drinkAbv"|"meetScene">;
+const EXTRA_PROFILE_SEEDS: ExtraProfileSeed[] = [
+  {id:"F07",gender:"woman",age:23,city:"杭州",height:165,role:"视觉设计师",vibe:"mystery",musicStyles:["Dream Pop","Indietronica"],musicEnergy:2,favoriteTrack:"BIRDS OF A FEATHER",drinkFamilies:["花香经典","无酒精"],favoriteDrink:"Clover Club",drinkAbv:18,meetScene:"匹配女生在唱片封面墙前停留，发现你也在看同一张专辑。"},
+  {id:"F08",gender:"woman",age:30,city:"南京",height:171,role:"律师",vibe:"chill",musicStyles:["Neo-Soul","Alternative R&B"],musicEnergy:2,favoriteTrack:"Earrings",drinkFamilies:["自然葡萄酒","日式长饮"],favoriteDrink:"Natural Red Wine",drinkAbv:13,meetScene:"匹配女生在安静区给朋友报平安，收起手机后才回应你的问候。"},
+  {id:"F09",gender:"woman",age:25,city:"武汉",height:167,role:"独立摄影师",vibe:"spark",musicStyles:["Afrobeats","Amapiano Pop"],musicEnergy:5,favoriteTrack:"Water",drinkFamilies:["清爽长饮","龙舌兰长饮"],favoriteDrink:"Paloma",drinkAbv:12,meetScene:"匹配女生拍完灯光后主动把镜头放下，问你是否也喜欢这段鼓点。"},
+  {id:"F10",gender:"woman",age:28,city:"厦门",height:160,role:"咖啡烘焙师",vibe:"chill",musicStyles:["City Pop","Folk Pop"],musicEnergy:3,favoriteTrack:"Plastic Love",drinkFamilies:["咖啡鸡尾酒","无酒精"],favoriteDrink:"Espresso Martini",drinkAbv:20,meetScene:"匹配女生闻出杯里的烘焙香，笑着和你比较咖啡与酒的苦味。"},
+  {id:"F11",gender:"woman",age:27,city:"重庆",height:173,role:"舞蹈老师",vibe:"spark",musicStyles:["Latin House","Dance Pop"],musicEnergy:5,favoriteTrack:"DANCE...",drinkFamilies:["起泡果味","低度开胃"],favoriteDrink:"Aperol Spritz",drinkAbv:9,meetScene:"匹配女生在舞圈边先示意是否愿意加入，手始终停在安全距离。"},
+  {id:"F12",gender:"woman",age:26,city:"苏州",height:169,role:"古籍修复师",vibe:"mystery",musicStyles:["Indie Folk","Dream Pop"],musicEnergy:2,favoriteTrack:"Doors",drinkFamilies:["清酒","自然葡萄酒"],favoriteDrink:"Junmai Sake",drinkAbv:15,meetScene:"匹配女生注意到杯垫上的印刷纹理，从纸张聊到各自最近读的书。"},
+  {id:"F13",gender:"woman",age:31,city:"天津",height:176,role:"建筑策展人",vibe:"mystery",musicStyles:["House","Nu-Disco"],musicEnergy:4,favoriteTrack:"New Religion",drinkFamilies:["苦甜经典","现代苦甜"],favoriteDrink:"Negroni",drinkAbv:24,meetScene:"匹配女生从空间动线聊到 DJ 台的位置，邀请你交换对这家店的第一印象。"},
+  {id:"F14",gender:"woman",age:24,city:"青岛",height:164,role:"海洋研究助理",vibe:"chill",musicStyles:["Indie Pop","Folk Pop"],musicEnergy:2,favoriteTrack:"Boston",drinkFamilies:["淡色拉格","无酒精"],favoriteDrink:"Lager",drinkAbv:5,meetScene:"匹配女生端着一杯拉格看窗外，问你海边城市的夜和这里有什么不同。"},
+  {id:"F15",gender:"woman",age:29,city:"西安",height:170,role:"博物馆教育员",vibe:"mystery",musicStyles:["华语 Indie Rock","Mandopop"],musicEnergy:3,favoriteTrack:"爱人错过",drinkFamilies:["中国白酒","日式长饮"],favoriteDrink:"Highball",drinkAbv:10,meetScene:"匹配女生认出歌里的历史采样，把一个知识点讲得像好玩的故事。"},
+  {id:"F16",gender:"woman",age:27,city:"昆明",height:168,role:"植物研究员",vibe:"chill",musicStyles:["Neo-Soul","City Pop"],musicEnergy:2,favoriteTrack:"Earrings",drinkFamilies:["草本短饮","无酒精"],favoriteDrink:"Zero-proof Tonic",drinkAbv:0,meetScene:"匹配女生正在辨认酒里的植物香气，邀请你一起猜是罗勒还是柑橘叶。"},
+  {id:"F17",gender:"woman",age:25,city:"佛山",height:162,role:"陶艺师",vibe:"chill",musicStyles:["Mandopop","Neo-Soul"],musicEnergy:2,favoriteTrack:"红色高跟鞋",drinkFamilies:["清酒","起泡果味"],favoriteDrink:"Bellini",drinkAbv:8,meetScene:"匹配女生先注意到酒杯的手工质感，再问你会不会因为杯子改变对酒的判断。"},
+  {id:"F18",gender:"woman",age:28,city:"珠海",height:174,role:"帆船教练",vibe:"spark",musicStyles:["Global Pop","Afrobeats"],musicEnergy:5,favoriteTrack:"Dai Dai",drinkFamilies:["朗姆长饮","清爽长饮"],favoriteDrink:"Mojito",drinkAbv:13,meetScene:"匹配女生刚从露台回来，扶住门后问你要不要一起去有风的地方聊。"},
+  {id:"F19",gender:"woman",age:32,city:"宁波",height:172,role:"供应链顾问",vibe:"mystery",musicStyles:["French House","Disco House"],musicEnergy:4,favoriteTrack:"Get Lucky",drinkFamilies:["起泡鸡尾酒","低度开胃"],favoriteDrink:"French 75",drinkAbv:15,meetScene:"匹配女生准确说出一段 Disco 采样，却没有把谈话变成知识竞赛。"},
+  {id:"F20",gender:"woman",age:26,city:"无锡",height:166,role:"游戏编剧",vibe:"spark",musicStyles:["Synthpop","Electropop"],musicEnergy:4,favoriteTrack:"Self Aware",drinkFamilies:["花香经典","莓果酸酒"],favoriteDrink:"Aviation",drinkAbv:22,meetScene:"匹配女生把酒单当作角色设定读，问你会给今晚的自己什么隐藏任务。"},
+  {id:"F21",gender:"woman",age:30,city:"合肥",height:175,role:"机器人产品经理",vibe:"mystery",musicStyles:["Electroclash","Indietronica"],musicEnergy:4,favoriteTrack:"L.U.C.K.Y",drinkFamilies:["烈酒短饮","无酒精"],favoriteDrink:"Dry Martini",drinkAbv:29,meetScene:"匹配女生从机械节拍聊到人为什么会在舞池里放松警惕。"},
+  {id:"F22",gender:"woman",age:23,city:"福州",height:161,role:"甜品师",vibe:"spark",musicStyles:["Disco Pop","K-Pop Crossover"],musicEnergy:5,favoriteTrack:"Espresso",drinkFamilies:["咖啡鸡尾酒","热带奶油"],favoriteDrink:"Espresso Martini",drinkAbv:20,meetScene:"匹配女生把杯中甜味拆成三层，问你最像甜点的一杯酒是哪种。"},
+  {id:"F23",gender:"woman",age:29,city:"郑州",height:170,role:"纪录片制片人",vibe:"chill",musicStyles:["Americana","Heartland Rock"],musicEnergy:3,favoriteTrack:"Kingdom of Fear",drinkFamilies:["精酿啤酒","威士忌酸酒"],favoriteDrink:"IPA",drinkAbv:6,meetScene:"匹配女生听见你谈到家乡，问的不是哪里好玩，而是什么声音最让你想起那里。"},
+  {id:"F24",gender:"woman",age:27,city:"沈阳",height:177,role:"现场灯光师",vibe:"spark",musicStyles:["EDM","Progressive House"],musicEnergy:5,favoriteTrack:"Levels",drinkFamilies:["无酒精","低度开胃"],favoriteDrink:"Zero-proof Tonic",drinkAbv:0,meetScene:"匹配女生预判到下一次灯光变化，笑着让你注意副歌落下的那一秒。"},
+  {id:"M07",gender:"man",age:25,city:"杭州",height:179,role:"交互设计师",vibe:"mystery",musicStyles:["Indietronica","Synthpop"],musicEnergy:3,favoriteTrack:"Midnight City",drinkFamilies:["日式长饮","无酒精"],favoriteDrink:"Highball",drinkAbv:10,meetScene:"匹配男生在互动装置前研究了很久，转身问你觉得它是在回应人还是诱导人。"},
+  {id:"M08",gender:"man",age:31,city:"南京",height:184,role:"高校讲师",vibe:"chill",musicStyles:["Neo-Soul","Indie Folk"],musicEnergy:2,favoriteTrack:"Doors",drinkFamilies:["自然葡萄酒","纯饮烈酒"],favoriteDrink:"Natural Red Wine",drinkAbv:13,meetScene:"匹配男生没有急着解释酒，只问你第一口最先注意到什么。"},
+  {id:"M09",gender:"man",age:27,city:"武汉",height:181,role:"音乐制作人",vibe:"spark",musicStyles:["Hip-Hop","华语 Hip-Hop"],musicEnergy:5,favoriteTrack:"大展鸿图",drinkFamilies:["咸鲜鸡尾酒","日式长饮"],favoriteDrink:"Highball",drinkAbv:10,meetScene:"匹配男生听见你认出鼓点切分，先问你想聊歌词还是制作。"},
+  {id:"M10",gender:"man",age:24,city:"厦门",height:175,role:"冲浪教练",vibe:"spark",musicStyles:["Afropop","Global Pop"],musicEnergy:5,favoriteTrack:"Dai Dai",drinkFamilies:["朗姆长饮","龙舌兰长饮"],favoriteDrink:"Paloma",drinkAbv:12,meetScene:"匹配男生从露台风向聊到海浪节奏，话题轻松但没有擅自靠近。"},
+  {id:"M11",gender:"man",age:29,city:"重庆",height:186,role:"餐厅主厨",vibe:"mystery",musicStyles:["Alternative R&B","Neo-Soul"],musicEnergy:2,favoriteTrack:"NOBLE",drinkFamilies:["咸鲜鸡尾酒","苦甜经典"],favoriteDrink:"Negroni",drinkAbv:24,meetScene:"匹配男生从一杯酒里的盐味聊到食物记忆，认真听你说完才回应。"},
+  {id:"M12",gender:"man",age:26,city:"苏州",height:177,role:"园林设计师",vibe:"chill",musicStyles:["Dream Pop","City Pop"],musicEnergy:2,favoriteTrack:"Plastic Love",drinkFamilies:["清酒","无酒精"],favoriteDrink:"Junmai Sake",drinkAbv:15,meetScene:"匹配男生说这家店最舒服的是一块留白，问你通常怎样判断空间是否安全。"},
+  {id:"M13",gender:"man",age:32,city:"天津",height:183,role:"工业设计师",vibe:"mystery",musicStyles:["Tech House","House"],musicEnergy:4,favoriteTrack:"Free Your Mind",drinkFamilies:["威士忌经典","现代苦甜"],favoriteDrink:"Old Fashioned",drinkAbv:28,meetScene:"匹配男生观察透明冰融化的速度，顺势问你更在乎味道还是仪式感。"},
+  {id:"M14",gender:"man",age:23,city:"青岛",height:180,role:"精酿酒吧店员",vibe:"spark",musicStyles:["Pop Rock","Indie Rock"],musicEnergy:4,favoriteTrack:"drop dead",drinkFamilies:["精酿啤酒","黑啤"],favoriteDrink:"IPA",drinkAbv:6,meetScene:"匹配男生只描述啤酒花像柚子皮，没有假设你必须懂任何专业词。"},
+  {id:"M15",gender:"man",age:28,city:"西安",height:176,role:"考古绘图师",vibe:"chill",musicStyles:["华语 Indie Rock","Folk Pop"],musicEnergy:3,favoriteTrack:"爱人错过",drinkFamilies:["中国白酒","无酒精"],favoriteDrink:"Zero-proof Tonic",drinkAbv:0,meetScene:"匹配男生从杯垫图案聊到城市旧墙，问题具体又不过度私人。"},
+  {id:"M16",gender:"man",age:30,city:"昆明",height:182,role:"野生动物摄影师",vibe:"mystery",musicStyles:["Indie Folk","Americana"],musicEnergy:2,favoriteTrack:"Mexico Honey",drinkFamilies:["自然葡萄酒","精酿啤酒"],favoriteDrink:"Natural Red Wine",drinkAbv:13,meetScene:"匹配男生把相机完全收进包里后才加入谈话，避免镜头造成压力。"},
+  {id:"M17",gender:"man",age:26,city:"佛山",height:174,role:"家具设计师",vibe:"chill",musicStyles:["French House","Nu-Disco"],musicEnergy:4,favoriteTrack:"Get Lucky",drinkFamilies:["低度开胃","起泡果味"],favoriteDrink:"Aperol Spritz",drinkAbv:9,meetScene:"匹配男生让出靠背更舒服的位置，没有把体贴变成交换条件。"},
+  {id:"M18",gender:"man",age:29,city:"珠海",height:188,role:"航空工程师",vibe:"mystery",musicStyles:["Synthwave","Progressive House"],musicEnergy:4,favoriteTrack:"Midnight City",drinkFamilies:["烈酒短饮","日式长饮"],favoriteDrink:"Dry Martini",drinkAbv:29,meetScene:"匹配男生从夜航灯光聊到这家店的色温，等你回应后才继续问题。"},
+  {id:"M19",gender:"man",age:25,city:"宁波",height:178,role:"服装买手",vibe:"spark",musicStyles:["K-Pop Crossover","Disco Pop"],musicEnergy:5,favoriteTrack:"APT.",drinkFamilies:["起泡果味","无酒精"],favoriteDrink:"Bellini",drinkAbv:8,meetScene:"匹配男生只赞美你选择的配色，没有评价身体或追问品牌。"},
+  {id:"M20",gender:"man",age:33,city:"无锡",height:185,role:"麻醉科医生",vibe:"chill",musicStyles:["Neo-Soul","Alternative R&B"],musicEnergy:2,favoriteTrack:"Earrings",drinkFamilies:["无酒精","日式长饮"],favoriteDrink:"Zero-proof Tonic",drinkAbv:0,meetScene:"匹配男生整晚选择无酒精饮品，也不询问别人为什么喝或不喝。"},
+  {id:"M21",gender:"man",age:27,city:"合肥",height:181,role:"算法工程师",vibe:"mystery",musicStyles:["Electropop","Tech House"],musicEnergy:4,favoriteTrack:"Self Aware",drinkFamilies:["苦甜经典","咖啡鸡尾酒"],favoriteDrink:"Negroni",drinkAbv:24,meetScene:"匹配男生把随机歌单比作推荐系统，随后认真问你不想被算法猜中的部分。"},
+  {id:"M22",gender:"man",age:24,city:"福州",height:173,role:"独立漫画作者",vibe:"spark",musicStyles:["Power Pop","Pop Rock"],musicEnergy:4,favoriteTrack:"hate that i made you love me",drinkFamilies:["莓果酸酒","清爽长饮"],favoriteDrink:"Clover Club",drinkAbv:18,meetScene:"匹配男生在杯垫上画了一个表情，问你愿不愿意替它写一句台词。"},
+  {id:"M23",gender:"man",age:30,city:"郑州",height:179,role:"铁路工程师",vibe:"chill",musicStyles:["Heartland Rock","Country Pop"],musicEnergy:3,favoriteTrack:"Choosin’ Texas",drinkFamilies:["威士忌酸酒","淡色拉格"],favoriteDrink:"Whiskey Sour",drinkAbv:19,meetScene:"匹配男生从末班车时间聊到最喜欢的一段铁路风景，不催促你留下。"},
+  {id:"M24",gender:"man",age:28,city:"沈阳",height:187,role:"冰球教练",vibe:"spark",musicStyles:["EDM","Dance Pop"],musicEnergy:5,favoriteTrack:"Bangaranga",drinkFamilies:["无酒精","姜味长饮"],favoriteDrink:"Moscow Mule",drinkAbv:11,meetScene:"匹配男生邀请你加入舞池前先问是否喜欢高能量音乐，拒绝也不会继续劝。"},
+];
+
+const PROFILE_FACES = ["椭圆脸、杏眼、平直眉、柔和鼻梁、均衡唇形","圆脸、内双眼、自然弯眉、圆润鼻尖、微笑唇","偏方脸、细长眼、浓直眉、直鼻、偏薄唇形","心形脸、上扬眼、挑眉、小巧鼻尖、饱满下唇","偏长脸、深眼窝、平眉、立体鼻梁、唇峰清晰","鹅蛋脸、圆眼、自然眉、柔和鼻梁、均衡唇形"];
+const PROFILE_HAIRS = ["利落短发","齐耳短发","锁骨直发","自然卷中发","低马尾","短碎发"];
+const PROFILE_OUTFITS = ["极简黑白与银色配饰","复古夹克与直筒裤","利落西装与素色内搭","柔软针织与低饱和配色","城市街头廓形与运动鞋","深色衬衫与干净皮鞋"];
+const CONVERSATION_BY_VIBE: Record<MatchProfile["vibe"],string> = {spark:"回应速度快，擅长用具体玩笑和共同活动建立气氛，但会观察对方是否接得住。",mystery:"先听后问，习惯从一个具体细节慢慢进入更深话题，不会连续追问隐私。",chill:"允许沉默和停顿，重视让双方舒服，不靠夸张故事制造熟悉感。"};
+const BOUNDARIES = ["不劝酒；任何身体接触前都会确认。","不接受未经同意的拍照或公开发布。","偏好先在公共场所交流，回程各自确认安全。","拒绝会被立即接受，不追问理由。","亲密决定只在双方清醒时讨论。","愿意交换轻量联系方式，不要求即时回复。"];
+
+export const MATCH_PROFILES: MatchProfile[] = [
+  ...BASE_MATCH_PROFILES,
+  ...EXTRA_PROFILE_SEEDS.map((seed,index)=>({
+    ...seed,
+    face:PROFILE_FACES[index%PROFILE_FACES.length],
+    hair:PROFILE_HAIRS[(index*2)%PROFILE_HAIRS.length],
+    outfit:PROFILE_OUTFITS[(index*3)%PROFILE_OUTFITS.length],
+    conversation:CONVERSATION_BY_VIBE[seed.vibe],
+    boundary:BOUNDARIES[index%BOUNDARIES.length],
+  })),
 ];
 
 const MUSIC_DESCRIPTIONS: Record<string, string> = {
