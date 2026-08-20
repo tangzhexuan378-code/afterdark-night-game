@@ -258,6 +258,9 @@ export default function Home() {
   const drink = DRINKS[drinkIndex];
   const bar = BARS[barIndex];
   const match = matchIndex >= 0 ? MATCH_PROFILES[matchIndex] : null;
+  const matchDisplay = match ? (match.gender === "woman" ? "匹配女生" : match.gender === "man" ? "匹配男生" : "匹配对象") : "";
+  const matchSymbol = match ? (match.gender === "woman" ? "♀" : match.gender === "man" ? "♂" : "·") : "";
+  const anonymousMeetScene = match ? match.meetScene : "";
   const seed = STORY_SEEDS[storyIndexes[round]] ?? STORY_SEEDS[round * 25];
   const personaName = PERSONAS.find((p) => p.id === persona)?.name ?? "谜面";
   const modelSummary = `${feature("faceShape",faceShape).label}脸 · ${feature("eyes",eyes).label} · ${feature("brows",brows).label} · ${feature("nose",nose).label} · ${feature("lips",lips).label} · ${feature("hair",hair).label}`;
@@ -544,7 +547,7 @@ export default function Home() {
           <aside className="game-sidebar">
             <div className="mini-profile">{modelMode === "photo" && avatar ? <img src={avatar} alt="角色头像" /> : <span>{nickname.slice(0,1)}</span>}<div><small>TONIGHT AS</small><b>{nickname || "夜行者"}</b><p>{height}cm · {personaName}</p></div></div>
             <div className="destination-card"><small>DESTINATION · {String(barIndex + 1).padStart(2,"0")}/30</small><strong>{bar.name}</strong><span>{bar.city} · {bar.style}</span><i>{bar.badge}</i></div>
-            {match && round >= 1 && <div className="match-teaser"><small>POSSIBLE MATCH · FICTIONAL</small><div><span>{match.name.slice(0,1)}</span><div><b>{match.name} · {match.age}</b><p>{match.height}cm · {match.role}</p></div><strong>{matchScore(matchParts(match,music.style,music.energy,drink.family,drink.abv,persona,height,heightPreference,stats))}%</strong></div><p>{match.meetScene}</p></div>}
+            {match && round >= 1 && <div className="match-teaser"><small>POSSIBLE MATCH · FICTIONAL</small><div><span>{matchSymbol}</span><div><b>{matchDisplay} · {match.age} 岁</b><p>{match.height}cm · {match.role}</p></div><strong>{matchScore(matchParts(match,music.style,music.energy,drink.family,drink.abv,persona,height,heightPreference,stats))}%</strong></div><p>{anonymousMeetScene}</p></div>}
             <div className="stat-card"><div><span>心动</span><b>{stats.spark}/10</b></div><progress value={stats.spark} max="10"/><div><span>能量</span><b>{stats.energy}/10</b></div><progress value={stats.energy} max="10"/><div><span>清醒</span><b>{stats.clarity}/10</b></div><progress value={stats.clarity} max="10"/></div>
             <div className="now-playing"><span>♫</span><div><small>NOW PLAYING · {music.style}</small><b>{music.title}</b><p>{music.artist}</p></div><a href={spotifyUrl(music.title,music.artist,music.id)} target="_blank" rel="noreferrer" aria-label="在 Spotify 打开">↗</a></div>
           </aside>
@@ -552,7 +555,7 @@ export default function Home() {
             <div className="story-progress">{[0,1,2,3].map((item) => <i key={item} className={item <= round ? "active" : ""}/>)}<span>CHAPTER {round + 1} / 4 · STORY #{storyIndexes[round] + 1}</span></div>
             <div className="time-stamp">{["22:47", "23:26", "00:18", "01:12"][round]}</div>
             <p className="eyebrow">{seed.tag}</p><h2>{seed.title}</h2>
-            <p className="story-copy">{round === 0 ? `${heightLine} ` : ""}{fillStory(seed)}{round === 1 && match ? ` ${match.meetScene}` : ""}</p>
+            <p className="story-copy">{round === 0 ? `${heightLine} ` : ""}{fillStory(seed)}{round === 1 && match ? ` ${anonymousMeetScene}` : ""}</p>
             <div className="choice-list">{choices.map((choice, index) => <button key={choice.action} onClick={() => choose(choice)}><span>{String(index + 1).padStart(2,"0")}</span><div><b>{choice.label}</b><small>{choice.note}</small></div><i>→</i></button>)}</div>
             {history.length > 0 && <details className="night-log"><summary>今晚已发生 · {history.length}</summary>{history.map((item, index) => <p key={index}><time>{item.time}</time>{item.text}</p>)}</details>}
             <p className="fiction-note">从 100 个细节剧情种子中随机组合。这是互动小说，不预测现实中的你；任何亲密互动都需要清楚、持续、可撤回的同意。</p>
@@ -575,9 +578,9 @@ export default function Home() {
               </div>
 
               {match && <section className="match-report">
-                <div className="match-profile-head"><div className="match-avatar">{match.name.slice(0,1)}</div><div><span>FICTIONAL ADULT PROFILE · 虚构成年角色</span><h2>{match.name}，{match.age} 岁</h2><p>{match.city} · {match.height}cm · {match.role}</p></div><strong>{finalMatchScore}%<small>游戏兼容度</small></strong></div>
+                <div className="match-profile-head"><div className="match-avatar">{matchSymbol}</div><div><span>FICTIONAL ADULT PROFILE · 匿名虚构成年角色</span><h2>{matchDisplay}，{match.age} 岁</h2><p>{match.city} · {match.height}cm · {match.role}</p></div><strong>{finalMatchScore}%<small>游戏兼容度</small></strong></div>
                 <div className="match-facts"><div><small>建模</small><b>{match.face}</b><p>{match.hair}；{match.outfit}</p></div><div><small>音乐</small><b>{match.favoriteTrack}</b><p>{match.musicStyles.join(" · ")} · 能量 {match.musicEnergy}/5</p></div><div><small>酒</small><b>{match.favoriteDrink}</b><p>{match.drinkFamilies.join(" · ")} · 约 {match.drinkAbv}% ABV</p></div><div><small>交流方式</small><b>{match.conversation}</b><p>边界：{match.boundary}</p></div></div>
-                <div className="match-scene"><small>你们如何遇见</small><p>{match.meetScene}</p></div>
+                <div className="match-scene"><small>你们如何遇见</small><p>{anonymousMeetScene}</p></div>
                 <div className="score-method"><h3>为什么是 {finalMatchScore}%</h3><p>系统先按你填写的互动对象与身高偏好，从 14 个虚构成年档案中筛出前三名，再随机选一位，所以展示分数以 52 为候选池基础值并保证超过 50。它是可解释的游戏指数，不是现实搭讪成功率或关系预测。</p><div>{finalMatchParts.map(part=><article key={part.label}><span>{part.label}</span><b>+{part.points}</b><p>{part.reason}</p></article>)}</div></div>
               </section>}
 
