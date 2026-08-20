@@ -156,12 +156,21 @@ export const ENDING_TEMPLATES: EndingTemplate[] = [
   e("E50",["any"],"AFTERDARK · 属于你的夜晚","下一次仍会不同",`酒吧、音乐、酒和选择只是坐标。真正改变结局的，是你何时靠近、何时停下，以及如何对待他人的答案。`,`综合所有选择生成的平衡结局。`),
 ];
 
-export function chooseQuestion(input:{phase:0|1|2|3;persona:GamePersona;stats:GameStats;lastAction?:string;musicEnergy:number;drinkAbv:number;fortune:number;usedIds:string[]}) {
+export function chooseQuestion(input:{phase:0|1|2|3;persona:GamePersona;stats:GameStats;lastAction?:string;musicEnergy:number;drinkAbv:number;fortune:number;usedIds:string[];venueEnergy:number;venueSocial:number;venueIntimacy:number;venueTags:string[]}) {
   const eligible = INTERACTION_QUESTIONS.filter((item)=>item.phase===input.phase&&!input.usedIds.includes(item.id)&&(item.minSpark===undefined||input.stats.spark>=item.minSpark)&&(item.maxSpark===undefined||input.stats.spark<=item.maxSpark));
   const ranked = eligible.map((item)=>{
     let score = item.affinity.includes(input.persona) ? 5 : 1;
     if (input.lastAction && item.follow?.includes(input.lastAction)) score += 5;
     if (item.theme.includes("舞") && input.musicEnergy>=4) score += 3;
+    if (item.theme.includes("舞") && input.venueTags.includes("dance")) score += 5;
+    if (item.theme.includes("音乐") && input.venueTags.some((tag)=>["music","live","dance"].includes(tag))) score += 4;
+    if (["朋友局","共同朋友"].some((theme)=>item.theme.includes(theme)) && input.venueTags.some((tag)=>["group","community","inclusive"].includes(tag))) score += 4;
+    if (["安静","深聊","自我披露","个人空间","未来节奏","关系定义"].some((theme)=>item.theme.includes(theme)) && input.venueIntimacy>=4) score += 4;
+    if (["第一印象","赞美","照片"].some((theme)=>item.theme.includes(theme)) && input.venueTags.some((tag)=>["style","photo","design","skyline","color"].includes(tag))) score += 3;
+    if (["调酒师","饮酒节奏","夜宵"].some((theme)=>item.theme.includes(theme)) && input.venueTags.some((tag)=>["bartender","tasting","food","tea","agave","whisky"].includes(tag))) score += 4;
+    if (["座位","旅行","白天约会"].some((theme)=>item.theme.includes(theme)) && input.venueTags.some((tag)=>["terrace","skyline","date","explore"].includes(tag))) score += 3;
+    if (["眼神","幽默","自我介绍","暧昧判断"].some((theme)=>item.theme.includes(theme)) && input.venueSocial>=4) score += 2;
+    if ((item.theme.includes("边界")||item.theme.includes("安全")||item.theme.includes("身体距离")) && input.venueEnergy>=5 && input.venueIntimacy<=2) score += 4;
     if ((item.theme.includes("酒")||item.theme.includes("清醒")) && input.drinkAbv>=18) score += 3;
     if ((item.theme.includes("边界")||item.theme.includes("安全")) && input.stats.clarity>=6) score += 2;
     score += (Number(item.id.slice(1)) + input.fortune + input.usedIds.length) % 4;
@@ -176,11 +185,18 @@ export function chooseQuestion(input:{phase:0|1|2|3;persona:GamePersona;stats:Ga
   return ranked[start+pick].item;
 }
 
-export function chooseEnding(input:{action:string;stats:GameStats;fortune:number;hasMatch:boolean;historyActions:string[]}) {
+export function chooseEnding(input:{action:string;stats:GameStats;fortune:number;hasMatch:boolean;historyActions:string[];venueEnergy:number;venueSocial:number;venueIntimacy:number;venueTags:string[]}) {
   const eligible = ENDING_TEMPLATES.filter((item)=>(item.actions.includes(input.action)||item.actions.includes("any"))&&(item.minSpark===undefined||input.stats.spark>=item.minSpark)&&(item.maxSpark===undefined||input.stats.spark<=item.maxSpark)&&(item.minClarity===undefined||input.stats.clarity>=item.minClarity)&&(item.maxClarity===undefined||input.stats.clarity<=item.maxClarity)&&(item.match===undefined||item.match===input.hasMatch));
   const ranked = eligible.map((item)=>{
     let score = item.actions.includes(input.action) ? 8 : 1;
     score += input.historyActions.filter((action)=>item.actions.includes(action)).length*2;
+    const venueText = `${item.tag} ${item.title}`;
+    if (input.venueTags.includes("dance") && (venueText.includes("DANCE")||venueText.includes("舞"))) score += 5;
+    if (input.venueTags.some((tag)=>["group","community","inclusive"].includes(tag)) && (venueText.includes("FRIEND")||venueText.includes("GROUP")||venueText.includes("拼桌")||venueText.includes("群聊"))) score += 4;
+    if (input.venueIntimacy>=4 && (venueText.includes("DEEP")||venueText.includes("QUIET")||venueText.includes("慢")||venueText.includes("白天")||venueText.includes("咖啡"))) score += 4;
+    if (input.venueTags.some((tag)=>["music","live"].includes(tag)) && (venueText.includes("SONG")||venueText.includes("歌")||venueText.includes("DJ"))) score += 4;
+    if (input.venueEnergy>=5 && (venueText.includes("LAUGH")||venueText.includes("DANCE")||venueText.includes("早餐"))) score += 3;
+    if (input.venueSocial<=3 && (venueText.includes("OBSERVER")||venueText.includes("独处")||venueText.includes("留白"))) score += 3;
     score += (Number(item.id.slice(1))+input.fortune)%5;
     return {item,score};
   }).sort((a,b)=>b.score-a.score||a.item.id.localeCompare(b.item.id));
