@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { BARS, DRINKS, MATCH_PROFILES, MUSIC, STORY_SEEDS, type MatchProfile, type StorySeed } from "./data";
 
 type Stage = "landing" | "setup" | "game" | "ending";
@@ -111,12 +111,116 @@ const matchParts = (
 };
 const matchScore = (parts: MatchPart[]) => Math.min(94, 52 + parts.reduce((sum, item) => sum + item.points, 0));
 
+const publicSiteUrl = "https://tangzhexuan378-code.github.io/afterdark-night-game/";
+const backendUrl = "https://afterdark-night-game.vercel.app";
+
+function getVisitorId() {
+  const key = "afterdark-anonymous-visitor";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+function compressPhoto(file: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return resolve(null);
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      const scale = Math.min(1, 1400 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((first) => {
+        if (first && first.size <= 900_000) return resolve(first);
+        canvas.toBlob((second) => resolve(second && second.size <= 1_100_000 ? second : null), "image/jpeg", .58);
+      }, "image/jpeg", .82);
+    };
+    image.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    image.src = url;
+  });
+}
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+type AdminSubmission = {
+  submissionId: string; metadataPath: string; photoPath: string; submittedAt: string;
+  nickname: string; modelSummary: string; height: string; music: string; drink: string;
+  device: string; country: string; consentVersion: string;
+};
+type AdminData = {
+  totalVisitDays: number; uniqueDevices: number; photoCount: number;
+  visitsByDay: [string, number][]; submissions: AdminSubmission[]; capped: boolean;
+};
+
+function AdminPhoto({ submission, token, onDeleted }: { submission: AdminSubmission; token: string; onDeleted: () => void }) {
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => () => { if (photoUrl) URL.revokeObjectURL(photoUrl); }, [photoUrl]);
+  const loadPhoto = async () => {
+    setBusy(true);
+    const response = await fetch(`${backendUrl}/api/photo?pathname=${encodeURIComponent(submission.photoPath)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (response.ok) setPhotoUrl(URL.createObjectURL(await response.blob()));
+    setBusy(false);
+  };
+  const deletePhoto = async () => {
+    if (!confirm("确认永久删除这张照片和授权记录？此操作无法恢复。")) return;
+    setBusy(true);
+    const response = await fetch(`${backendUrl}/api/delete`, { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ photoPath: submission.photoPath, metadataPath: submission.metadataPath }) });
+    setBusy(false);
+    if (response.ok) onDeleted();
+  };
+  return <article className="admin-photo-card">
+    <div className="admin-photo-frame">{photoUrl ? <img src={photoUrl} alt={`${submission.nickname || "匿名玩家"}授权上传的照片`} /> : <button onClick={loadPhoto} disabled={busy}>{busy ? "读取中…" : "点击查看私有照片"}</button>}</div>
+    <div className="admin-photo-copy"><div><b>{submission.nickname || "匿名玩家"}</b><time>{new Date(submission.submittedAt).toLocaleString("zh-CN")}</time></div><p>{submission.modelSummary}</p><small>{submission.height}cm · {submission.music} · {submission.drink}</small><small>{submission.device} · {submission.country || "未知地区"} · 已明确授权</small><button onClick={deletePhoto} disabled={busy}>删除照片与记录</button></div>
+  </article>;
+}
+
+function AdminDashboard({ onExit }: { onExit: () => void }) {
+  const [token, setToken] = useState("");
+  const [data, setData] = useState<AdminData | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const load = async (credential = token) => {
+    if (!credential) return;
+    setLoading(true); setError("");
+    const response = await fetch(`${backendUrl}/api/admin`, { headers: { Authorization: `Bearer ${credential}` } });
+    if (!response.ok) { setError("站长口令不正确或后台尚未完成部署。"); setData(null); }
+    else { setData(await response.json()); sessionStorage.setItem("afterdark-admin-token", credential); }
+    setLoading(false);
+  };
+  useEffect(() => { const saved = sessionStorage.getItem("afterdark-admin-token") ?? ""; if (saved) { setToken(saved); void load(saved); } }, []);
+  const maxVisit = Math.max(1, ...(data?.visitsByDay.map(([, count]) => count) ?? [1]));
+  return <main className="admin-shell">
+    <header className="admin-topbar"><StoryLogo/><div><a href={publicSiteUrl}>公开游戏 ↗</a><button onClick={onExit}>退出后台</button></div></header>
+    {!data ? <section className="admin-login"><p className="eyebrow">OWNER ACCESS · PRIVATE</p><h1>AFTERDARK<br/>站长后台</h1><p>后台包含匿名访问统计和玩家主动授权上传的照片。照片默认私有，只有通过站长口令才能读取。</p><label>站长口令<input type="password" value={token} onChange={(event) => setToken(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void load(); }} /></label>{error && <small>{error}</small>}<button className="primary" onClick={() => void load()} disabled={loading || !token}>{loading ? "验证中…" : "进入后台"}<span>↗</span></button></section> : <section className="admin-dashboard">
+      <div className="admin-title"><div><p className="eyebrow">LIVE OWNER VIEW</p><h1>访问与授权照片</h1></div><button onClick={() => void load()}>刷新数据</button></div>
+      <div className="admin-metrics"><article><span>独立设备</span><b>{data.uniqueDevices}</b><small>匿名随机 ID，不保存原始 IP</small></article><article><span>访问日记录</span><b>{data.totalVisitDays}</b><small>同一设备每天最多计一次</small></article><article><span>授权照片</span><b>{data.photoCount}</b><small>仅玩家主动授权上传</small></article></div>
+      <section className="visit-chart"><header><h2>近 30 日访问</h2><span>{data.capped ? "数据较多，当前为最近批次" : "实时私有统计"}</span></header><div>{data.visitsByDay.length ? data.visitsByDay.map(([day, count]) => <article key={day}><b style={{height:`${Math.max(8, count / maxVisit * 100)}%`}}/><span>{day.slice(5)}</span><small>{count}</small></article>) : <p>还没有访问记录</p>}</div></section>
+      <section className="admin-photos"><header><h2>玩家授权照片</h2><p>不得下载传播或用于人脸识别；玩家要求删除时应立即处理。</p></header><div>{data.submissions.length ? data.submissions.map((submission) => <AdminPhoto key={submission.submissionId} submission={submission} token={token} onDeleted={() => void load()} />) : <p className="admin-empty">暂无玩家授权上传照片。</p>}</div></section>
+    </section>}
+  </main>;
+}
+
 function StoryLogo() {
   return <span className="wordmark">AFTER<span>DARK</span></span>;
 }
 
 export default function Home() {
   const [stage, setStage] = useState<Stage>("landing");
+  const [adminView, setAdminView] = useState(() => typeof window !== "undefined" && window.location.hash === "#admin");
   const [adult, setAdult] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("bars");
@@ -124,6 +228,10 @@ export default function Home() {
   const [height, setHeight] = useState(172);
   const [persona, setPersona] = useState<Persona>("mystery");
   const [avatar, setAvatar] = useState("");
+  const [avatarUploadBlob, setAvatarUploadBlob] = useState<Blob | null>(null);
+  const [sharePhotoConsent, setSharePhotoConsent] = useState(false);
+  const [photoUploadStatus, setPhotoUploadStatus] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
   const [modelMode, setModelMode] = useState<ModelMode>("manual");
   const [playerGender, setPlayerGender] = useState<PlayerGender>("private");
   const [interest, setInterest] = useState<Interest>("all");
@@ -156,6 +264,25 @@ export default function Home() {
   const finalMatchParts = match ? matchParts(match,music.style,music.energy,drink.family,drink.abv,persona,height,heightPreference,stats) : [];
   const finalMatchScore = match ? matchScore(finalMatchParts) : 0;
 
+  useEffect(() => {
+    const onHash = () => setAdminView(window.location.hash === "#admin");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    if (adminView) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const marker = `afterdark-visit-${day}`;
+    if (sessionStorage.getItem(marker)) return;
+    const sessionId = getVisitorId();
+    void fetch(`${backendUrl}/api/visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, page: location.pathname, referrer: document.referrer }),
+    }).then((response) => { if (response.ok) sessionStorage.setItem(marker, "1"); }).catch(() => undefined);
+  }, [adminView]);
+
   const heightLine = useMemo(() => {
     if (height >= 182) return "你在人群上方更容易捕捉到视线，但真正留下印象的是你的节奏。";
     if (height <= 164) return "你自然融进人群，靠近时才会让人发现细节。";
@@ -169,10 +296,46 @@ export default function Home() {
 
   const uploadAvatar = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !file.type.startsWith("image/") || file.size > 6 * 1024 * 1024) return;
+    if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setPhotoUploadStatus("请选择 JPG、PNG 或 WebP 图片，原图不超过 10MB。");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => { setAvatar(String(reader.result)); setModelMode("photo"); };
     reader.readAsDataURL(file);
+    setPhotoUploadStatus("正在准备本机预览…");
+    void compressPhoto(file).then((blob) => {
+      setAvatarUploadBlob(blob);
+      setPhotoUploadStatus(blob ? "照片已在本机压缩；未勾选授权前不会上传。" : "照片可以本机预览，但无法压缩上传，请换一张图片。");
+    });
+  };
+
+  const uploadConsentedPhoto = async () => {
+    if (!(modelMode === "photo" && avatarUploadBlob && sharePhotoConsent)) return;
+    setPhotoUploadStatus("正在加密传输到私有后台…");
+    try {
+      const photoBase64 = await blobToBase64(avatarUploadBlob);
+      const response = await fetch(`${backendUrl}/api/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoBase64, mimeType: "image/jpeg", consent: true, sessionId: getVisitorId(), nickname: nickname || "匿名玩家",
+          modelSummary, height: String(height), music: `${music.title} · ${music.style}`, drink: `${drink.name} · ${drink.family}`,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      setPhotoUploadStatus(response.ok ? "已按授权上传到私有后台；站长可以查看和删除。" : `上传失败：${result.error ?? "请稍后再试"}`);
+    } catch {
+      setPhotoUploadStatus("上传失败，但不影响继续游戏；照片仍保留在本机。");
+    }
+  };
+
+  const shareSite = async () => {
+    const shareData = { title: "AFTERDARK — 今晚，会发生什么？", text: "30 家真实酒吧 × 50 种音乐 × 50 种酒类 × 100 个剧情。", url: publicSiteUrl };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else { await navigator.clipboard.writeText(publicSiteUrl); setShareStatus("链接已复制，可直接粘贴到微信聊天"); }
+    } catch { setShareStatus(""); }
   };
 
   const startNight = () => {
@@ -194,6 +357,7 @@ export default function Home() {
     setHistory([]);
     setRound(0);
     setStage("game");
+    void uploadConsentedPhoto();
   };
 
   const choices = useMemo<Choice[]>(() => {
@@ -269,6 +433,8 @@ export default function Home() {
 
   const openLibrary = (tab: LibraryTab) => { setLibraryTab(tab); setShowLibrary(true); };
 
+  if (adminView) return <AdminDashboard onExit={() => { window.history.replaceState(null, "", location.pathname + location.search); setAdminView(false); }} />;
+
   return (
     <main className={`app stage-${stage}`}>
       <header className="topbar">
@@ -287,8 +453,10 @@ export default function Home() {
           <p className="lede">抽取 30 家真实热门酒吧中的一站，从 50 种音乐与 50 种酒类中做选择。100 个细节剧情种子，会随你的每一步重新组合。</p>
           <div className="landing-cta">
             <button className="primary" disabled={!adult} onClick={() => setStage("setup")}>开始今晚 <span>↗</span></button>
+            <button className="share-button" onClick={() => void shareSite()}>分享给微信好友</button>
             <label className="age-check"><input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} /><span>我已满 18 岁，并同意理性饮酒、尊重边界</span></label>
           </div>
+          {shareStatus && <p className="share-status">{shareStatus}</p>}
           <div className="landing-proof">
             <button onClick={() => openLibrary("bars")}><b>30</b><span>真实目的地</span></button>
             <button onClick={() => openLibrary("music")}><b>50</b><span>音乐风格与曲目</span></button>
@@ -310,7 +478,7 @@ export default function Home() {
             <section className="form-section">
               <div className="section-head"><span>01</span><div><h3>精细夜间建模</h3><p>真人照片只作本机头像；逻辑分析来自你亲自填写的特征，不从脸推断颜值或人格。</p></div><i className="privacy-badge">LOCAL ONLY</i></div>
               <div className="model-mode-tabs">
-                <button className={modelMode === "manual" ? "selected" : ""} onClick={() => setModelMode("manual")}><b>手动精细建模</b><small>不传照片也能完整分析</small></button>
+                <button className={modelMode === "manual" ? "selected" : ""} onClick={() => { setModelMode("manual"); setSharePhotoConsent(false); }}><b>手动精细建模</b><small>不传照片也能完整分析</small></button>
                 <button className={modelMode === "photo" ? "selected" : ""} onClick={() => setModelMode("photo")}><b>上传真人照片</b><small>仅本机预览，不参与识别</small></button>
               </div>
               <div className="model-workbench">
@@ -320,8 +488,10 @@ export default function Home() {
                 </div>
                 <div className="profile-controls">
                   <div className="field-stack"><label>今晚的名字<input value={nickname} maxLength={12} onChange={(e) => setNickname(e.target.value)} /></label></div>
-                  {modelMode === "photo" && <label className="photo-drop"><input type="file" accept="image/*" onChange={uploadAvatar} /><b>{avatar ? "更换真人照片" : "选择真人照片"}</b><span>JPG / PNG / HEIC · 最大 6MB</span></label>}
-                  <p className="privacy-copy">照片不会上传、保存或做人脸识别。即使上传照片，下面的脸部细节仍由你手动填写，避免系统从外貌猜测敏感信息。</p>
+                  {modelMode === "photo" && <label className="photo-drop"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAvatar} /><b>{avatar ? "更换真人照片" : "选择真人照片"}</b><span>JPG / PNG / WebP · 原图最大 10MB</span></label>}
+                  <p className="privacy-copy">默认仅在本机预览，不做人脸识别。下面的脸部细节始终由你手动填写，避免系统从外貌猜测敏感信息。</p>
+                  {modelMode === "photo" && avatar && <label className="photo-consent"><input type="checkbox" checked={sharePhotoConsent} onChange={(event) => setSharePhotoConsent(event.target.checked)} /><span><b>自愿授权上传给站长查看</b><small>将上传压缩照片、昵称、身高、音乐、酒和建模摘要。照片存入私有空间，不公开展示；站长可在后台永久删除。不同意不影响游戏。</small></span></label>}
+                  {photoUploadStatus && <p className="upload-status">{photoUploadStatus}</p>}
                 </div>
               </div>
               <div className="feature-heading"><div><b>脸部与造型细节</b><span>每一项都会在结局中给出视觉逻辑，但不做“美/丑”评分。</span></div><span>7 DIMENSIONS</span></div>
@@ -413,7 +583,7 @@ export default function Home() {
         </section>
       )}
 
-      <footer className="global-footer"><span>18+ · 理性饮酒 · 尊重同意 · 娱乐性虚构</span><div><a href="https://www.theworlds50best.com/bars/best-in-asia/list/1-50" target="_blank" rel="noreferrer">酒吧来源</a><a href="https://newsroom.spotify.com/2026-05-29/songs-of-summer-predictions/" target="_blank" rel="noreferrer">音乐来源</a><a href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">酒款来源</a></div></footer>
+      <footer className="global-footer"><span>18+ · 匿名访问计数 · 照片仅主动授权上传 · 娱乐性虚构</span><div><a href="#admin">站长后台</a><a href="https://www.theworlds50best.com/bars/best-in-asia/list/1-50" target="_blank" rel="noreferrer">酒吧来源</a><a href="https://newsroom.spotify.com/2026-05-29/songs-of-summer-predictions/" target="_blank" rel="noreferrer">音乐来源</a><a href="https://iba-world.com/cocktails/" target="_blank" rel="noreferrer">酒款来源</a></div></footer>
 
       {showLibrary && <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowLibrary(false)}><section className="data-modal" role="dialog" aria-modal="true" aria-labelledby="library-title" onMouseDown={(e) => e.stopPropagation()}><header><div><p className="eyebrow">RESEARCHED GAME LIBRARY</p><h2 id="library-title">真实数据图鉴</h2></div><button onClick={() => setShowLibrary(false)} aria-label="关闭">×</button></header><nav className="library-tabs">{(["bars","music","drinks","stories"] as LibraryTab[]).map((tab) => <button key={tab} className={libraryTab === tab ? "active" : ""} onClick={() => setLibraryTab(tab)}>{tab === "bars" ? "酒吧 30" : tab === "music" ? "音乐 50" : tab === "drinks" ? "酒类 50" : "剧情 100"}</button>)}</nav>
         {libraryTab === "bars" && <><p className="modal-note">中国没有覆盖所有酒吧与夜店的统一“全国 Top 30”官方榜单。本池以 2026 Asia’s 50 Best Bars 的中国上榜酒吧为锚点，补充城市知名场所；不宣称是官方全国排名。营业状态与入场规则请出行前核实。</p><div className="data-list bars-list">{BARS.map((item,index) => <article key={`${item.city}-${item.name}`}><span>{String(index+1).padStart(2,"0")}</span><div><b>{item.name}</b><small>{item.city} · {item.style}</small></div><i>{item.badge}</i></article>)}</div><a className="source-link" href="https://mmx.prnewswire.com/media/MS1890898/A50BB2026-Results-The-List.pdf" target="_blank" rel="noreferrer">查看 2026 Asia’s 50 Best Bars 原始榜单 ↗</a></>}
