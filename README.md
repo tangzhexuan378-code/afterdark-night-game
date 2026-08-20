@@ -9,6 +9,7 @@
 - 30 家真实酒吧与夜生活目的地（含上海 INS；官方榜单名次与编辑精选明确区分）
 - 50 种音乐风格与真实代表曲目
 - 50 种鸡尾酒、啤酒、葡萄酒、清酒、白酒、烈酒及无酒精选
+- 每一项音乐和酒都有面向新手的风格、听感、原料、风味、历史或常见误区介绍
 - 100 个细节剧情种子：入场、相遇、升温、结局各 25 个
 - 多结局：搭讪、心动、明确同意后的 kiss、交换联系方式、独处、朋友同行、安全离场等
 - 七维手动脸部与穿搭建模；真人照片仅在本机作为头像预览，不做人脸识别
@@ -32,6 +33,10 @@
 - [Nature Human Behaviour：伴侣特征相似性研究](https://www.nature.com/articles/s41562-023-01672-z)
 - [音乐与亲密关系综述](https://pmc.ncbi.nlm.nih.gov/articles/PMC10899422/)
 - [NIAAA：酒精与大脑判断](https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics/health-topics-alcohol-and-brain)
+- [AllMusic 音乐风格资料](https://www.allmusic.com/style/house-ma0000002651)
+- [Brewers Association 2026 Beer Style Guidelines](https://www.brewersassociation.org/edu/brewers-association-beer-style-guidelines/)
+- [WSET Knowledge Centre](https://www.wsetglobal.com/knowledge-centre/)
+- [Japan Sake and Shochu Makers Association](https://www.japansake.or.jp/)
 
 中国目前没有覆盖所有酒吧和夜店的统一“全国 Top 30”官方榜单。本项目以 2026 Asia’s 50 Best Bars 的中国上榜酒吧为锚点，补充城市知名场所，作为游戏编辑池；不宣称是官方全国排名。营业状态和入场规则请在现实出行前核实。
 

@@ -1,6 +1,6 @@
 export type Bar = { name: string; city: string; style: string; badge: string };
-export type Music = { title: string; artist: string; style: string; energy: number; id?: string; query?: string };
-export type Drink = { name: string; base: string; family: string; abv: number; mark: string };
+export type Music = { title: string; artist: string; style: string; energy: number; description: string; id?: string; query?: string };
+export type Drink = { name: string; base: string; family: string; abv: number; mark: string; description: string };
 export type StorySeed = { phase: number; tag: string; title: string; text: string };
 export type MatchProfile = {
   name: string; gender: "woman" | "man" | "nonbinary"; age: number; city: string; height: number;
@@ -61,8 +61,61 @@ export const MATCH_PROFILES: MatchProfile[] = [
   { name:"阿岑",gender:"nonbinary",age:28,city:"成都",height:171,face:"圆润鹅蛋脸、内双圆眼、自然弯眉、圆鼻尖、微笑唇",hair:"黑色中长卷发",outfit:"复古针织背心、白衬衫、乐福鞋",role:"书店策划",vibe:"chill",musicStyles:["Neo-Soul","City Pop","Indie Folk","Dream Pop"],musicEnergy:2,favoriteTrack:"BIRDS OF A FEATHER",drinkFamilies:["自然葡萄酒","咖啡鸡尾酒","无酒精"],favoriteDrink:"Natural Red Wine",drinkAbv:13,conversation:"能在热闹中保留安静，喜欢交换书、歌和城市散步路线。",boundary:"不接受突然拍照或公开发布互动内容。",meetScene:"阿岑在吧台读完一页才合上书，确认你也读过同一位作者。" },
 ];
 
+const MUSIC_DESCRIPTIONS: Record<string, string> = {
+  "House":"诞生于芝加哥俱乐部文化，核心是稳定的四拍踩镲、反复低音和合成器。它像一条不断向前的传送带，很适合不想研究舞步、只想跟着节奏进入状态的人。",
+  "Disco House":"把 House 的四拍骨架与 Disco 的弦乐、放克贝斯、女声切片结合。听感闪亮又复古，适合刚认识的人一起轻松跳舞，不必一开始就把气氛推到最硬。",
+  "Electroclash":"把合成器流行、Electro、New Wave 与朋克式态度混在一起，故意保留冰冷机器感和一点戏谑。适合穿搭大胆、喜欢锐利节拍和千禧年代夜店美学的玩家。",
+  "Amapiano":"源自南非的舞曲风格，常见温暖钢琴和弦、沙锤细节、深沉低音与标志性的 Log Drum。节奏看似松弛，低频却会慢慢接管身体，适合长时间摇摆而不是短暂爆发。",
+  "Alternative Rock":"广义上来自主流摇滚之外的独立与地下传统，吉他、鼓和个人化表达通常比标准流行公式更重要。它适合想保留一点棱角，又不排斥旋律与现场感的人。",
+  "Indie Pop":"强调轻盈旋律、亲密写作和独立制作气质，常把吉他、合成器或卧室录音的质感混在一起。它不一定安静，却通常比大制作流行更像朋友分享的一首私藏。",
+  "Country Pop":"把乡村音乐的叙事、木吉他或口音元素，与流行音乐清晰的副歌和制作结合。适合喜欢歌词故事、容易跟唱，又不想整晚都泡在重低音里的人。",
+  "Dance Pop":"以明确副歌、稳定节拍和舞池可用性为目标的流行音乐。结构通常直给、记忆点来得快，是聚会里最容易让不同音乐背景的人同时进入状态的安全选择。",
+  "Afrobeats":"当代西非流行音乐的重要类型，常融合 Highlife、Hip-Hop、Dancehall 与电子制作；注意它不同于 Fela Kuti 时代的 Afrobeat。节奏富有弹性，适合边聊天边自然摆动。",
+  "Hip-Hop":"以节拍、押韵、Flow、采样与 DJ 文化为核心，从纽约街区文化发展成全球语言。选择它往往意味着你在意节奏和表达，适合从歌词、制作人或地域风格开始聊天。",
+  "Pop Rock":"把流行音乐易记的旋律和摇滚乐队的吉他鼓组结合，通常比硬摇滚明亮、比纯流行更有现场冲击。适合想跟唱、挥手，也想感受真鼓与失真吉他的玩家。",
+  "Psychedelic Pop":"借用迷幻摇滚的空间效果、循环、相位和超现实音色，但保留流行歌的旋律与篇幅。听感像灯光被拉出残影，适合喜欢层次、氛围和一点不真实感的人。",
+  "Latin House":"用 House 的四拍节奏承载拉丁打击乐、号角、声乐或热带采样。它比标准 House 更外放、更有身体律动，适合快速打破拘谨，但不代表必须会任何特定舞种。",
+  "Latin Afrobeats":"把拉丁流行、加勒比节奏与 Afrobeats 的弹性鼓点相连，是一种跨地区的当代融合。它的乐趣在于重拍不笨重、旋律又容易记，适合多语言和热闹社交场景。",
+  "Neo-Soul":"在当代 R&B 基础上更强调经典 Soul 的和声、乐手感和松弛 Groove。人声通常有呼吸与细节，适合坐席酒吧、慢慢聊天，以及愿意认真听完一段演唱的人。",
+  "Folk Pop":"用民谣的原声乐器和叙事感，搭配流行音乐简洁、好记的结构。它不靠巨大低频抢注意力，适合分享歌词、旅行与个人故事的夜晚。",
+  "Power Pop":"以响亮吉他、紧凑节奏和极强副歌为标志，继承 1960 年代流行旋律与摇滚冲劲。听起来阳光直接，却常藏着失恋歌词，适合边跳边大声合唱。",
+  "Americana":"从美国民谣、乡村、蓝草、布鲁斯和 Roots Rock 汲取声音，更像一个文化集合而非单一节拍公式。适合喜欢木质音色、公路感和人物叙事的人。",
+  "Alté":"源自尼日利亚青年文化的“Alternative”取向，常自由混合 Afrobeats、R&B、Rap、Indie 与时尚视觉。它不追求统一模板，适合喜欢新鲜审美和跨风格歌单的人。",
+  "Electropop":"以合成器、电子鼓和精炼流行旋律为核心，声音通常比传统乐队更明亮、规整。适合喜欢未来感、干净低频和强副歌，但又不想进入纯地下电子场景的人。",
+  "Country":"重视人物、地点和日常生活的叙事，常见木吉他、钢棒吉他、班卓或小提琴。即使不熟悉乡村文化，也可以从歌词里的具体故事进入。",
+  "Afropop":"泛指非洲各地面向当代大众市场的流行音乐，可能融合本地语言、传统节奏、电子制作与全球流行元素。范围很广，适合对地域声音和旋律变化有好奇心的人。",
+  "Indie Folk":"把民谣的原声质感与独立音乐更私人、实验或低保真的表达结合。它适合音量稍低的空间，让陌生人不必喊话，也更容易聊到歌词背后的情绪。",
+  "Reggaeton":"起源与波多黎各、巴拿马等拉丁加勒比文化密切相关，标志是持续的 Dembow 节奏。它直接、循环而有身体感，适合舞池升温，但不等于所有拉丁音乐。",
+  "UK Garage":"英国 1990 年代发展的电子舞曲，常见切分鼓点、摇摆节奏、低音和经过切片的人声。比四拍 House 更跳跃，适合喜欢脚步变化和俏皮律动的人。",
+  "Tech House":"把 Techno 的简洁机械质感与 House 的 Groove 结合，通常依靠低音、鼓组和细小变化推进。它不急着给大副歌，适合真正想连续跳一段时间的人。",
+  "Heartland Rock":"以朴实摇滚编制、普通人的生活叙事和宽阔副歌著称，常带公路与小镇想象。适合喜欢真实乐队感、愿意跟着歌词建立情绪的人。",
+  "Synthpop":"以合成器作为主要旋律与质感来源，兴起于 1970 年代末至 1980 年代，并延续至今。它可以冷峻也可以浪漫，适合霓虹灯、复古未来感和清晰节拍。",
+  "Europop":"泛指欧洲制作传统中明亮、旋律突出、面向大众舞池的流行音乐。副歌通常简单有力，适合语言不同的人一起唱，也常带一点节庆式夸张。",
+  "Global Pop":"不是严格的单一流派，而是把不同地区的语言、节奏和流行制作放在同一首歌中。适合世界性活动和大范围社交场景，优点是进入门槛低、文化线索多。",
+  "华语 Hip-Hop":"用普通话、方言或多语 Flow 连接现代 Beat、采样和本地叙事。它既有派对型作品，也有很具体的城市经验，适合从押韵、地域和歌词梗开启话题。",
+  "K-Pop Crossover":"以韩国流行工业的精密制作为基础，常跨入 Rock、Hip-Hop、EDM 或英语流行市场。编曲段落变化快、记忆点密集，适合喜欢舞蹈、视觉和多人合唱的人。",
+  "Pop Ballad":"把人声、歌词和缓慢情绪推进放在中心，常用钢琴、弦乐或逐步扩大的鼓组制造高潮。适合暂时离开舞池、认真听一句歌词，也适合深夜收尾。",
+  "Dream Pop":"一种重视音色纹理的氛围型另类流行，常见气声、混响吉他与漂浮合成器。它像给现实罩上柔焦，适合慢热、想保持距离又享受情绪的人。",
+  "Disco Pop":"把 Disco 的弹性贝斯、四拍节奏和华丽弦乐，压缩进现代流行歌的清晰结构。它复古但不古板，适合第一次见面时用熟悉律动减轻尴尬。",
+  "Synthwave":"受 1980 年代电影配乐、街机与模拟合成器想象影响的复古电子风格。常有脉冲低音和夜间驾驶感，适合想把城市夜景变成电影片头的人。",
+  "Nu-Disco":"21 世纪对 Disco 与 Boogie 的现代复兴，通常保留放克贝斯和闪亮和弦，同时使用更干净的电子制作。适合优雅地热场，不必一上来就进入高强度音乐。",
+  "Dance / Electronic":"覆盖范围很广，指以电子制作和舞蹈节拍为核心、但不局限于单一地下流派的作品。它适合不想背风格名词，只想选一首能动起来的歌。",
+  "EDM":"Electronic Dance Music 的大众化统称，常指大型节庆中使用明显 Build-up 与 Drop 的电子舞曲。高潮来得清楚，适合集体释放，但连续聆听的强度也较高。",
+  "Progressive House":"通过层层叠加的旋律、和弦与鼓组缓慢建立高潮，重视长线推进而非频繁切换。适合从热场逐步走向大合唱，让情绪像坡道一样上升。",
+  "Indietronica":"把独立摇滚或独立流行的写作，与电子鼓、采样、合成器和电脑制作结合。它兼有人的脆弱感与机器纹理，适合喜欢小众旋律又不排斥电子声音的人。",
+  "French House":"法国 1990 年代兴起的 House 分支，常使用 Disco/Funk 采样、滤波扫频和压缩感强的循环。声音像镜面反光，适合复古、时髦而持续的舞池。",
+  "Alternative R&B":"在 R&B 人声与节奏基础上加入电子、Indie、Ambient 或更非传统的歌曲结构。它通常更私密、夜色更深，适合暧昧但不喧闹的交流。",
+  "Amapiano Pop":"把 Amapiano 的钢琴、Log Drum 和南非律动压缩进更短、更好记的流行结构。既保留低频摇摆又容易跟唱，适合从歌单模式顺滑进入舞池。",
+  "Afrobeat Pop":"把西非节奏传统、铜管或律动意识与当代流行结构结合；名称常与 Afrobeats 混用，但历史来源并不完全相同。这里更强调跨界旋律和轻快社交感。",
+  "Reggaeton Pop":"保留 Reggaeton 的 Dembow 鼓点，同时使用更明显的流行副歌、抒情段落和跨语种制作。适合初次接触拉丁节奏的人，熟悉度比地下版本更高。",
+  "Funk Pop":"以切分节奏、弹性贝斯、吉他短句和明亮铜管为流行歌曲增加 Groove。它的快乐很具体，适合全场一起拍手、互动和做不太严肃的舞步。",
+  "Mandopop":"以普通话演唱的华语流行音乐，覆盖抒情、电子、摇滚和 R&B 等多种制作。共同语言和熟悉歌词会降低交流门槛，很适合点歌与合唱场景。",
+  "华语 Indie Rock":"来自华语独立乐队与现场文化，常以吉他编制、个人写作和城市经验区别于标准工业流行。适合从演出、城市和歌词里的细节建立真实话题。",
+  "City Pop":"与日本 1970 年代末至 1980 年代都市消费文化密切相关，常融合 Funk、Disco、Soft Rock 和 Jazz。它有夜间公路、霓虹与夏日感，适合轻松但讲究质感的酒吧。",
+};
+
 const search = (title: string, artist: string) => `${title} ${artist}`;
-export const MUSIC: Music[] = [
+const MUSIC_BASE = [
   { title:"New Religion",artist:"Bebe Rexha, Faithless",style:"House",energy:4,id:"2Lb9ww5vZAnveWnrFQfAKR" },
   { title:"Talk To You",artist:"ANOTR, 54 Ultra",style:"Disco House",energy:4,id:"0kl6Ozan3fuUdCl6TlB15v" },
   { title:"DANCE...",artist:"Slayyyter",style:"Electroclash",energy:5,id:"5rfOARz6QO73wPATyMtQQZ" },
@@ -115,7 +168,62 @@ export const MUSIC: Music[] = [
   { title:"Plastic Love",artist:"Mariya Takeuchi",style:"City Pop",energy:3,query:search("Plastic Love","Mariya Takeuchi") },
 ];
 
-export const DRINKS: Drink[] = [
+export const MUSIC: Music[] = MUSIC_BASE.map((item) => ({ ...item, description: MUSIC_DESCRIPTIONS[item.style] }));
+
+const DRINK_DESCRIPTIONS: Record<string, string> = {
+  "Negroni":"经典配方由金酒、甜味美思和 Campari 构成，通常等比例搅拌。入口先是橙皮与草本，随后出现明显苦甜；它适合慢慢喝，不适合把“苦”误认成酒坏了。",
+  "Americano":"Campari 与甜味美思加苏打，是一杯带气泡的低度开胃酒，也常被视为 Negroni 家族的重要前身。苦橙、草本和气泡让它比烈酒短饮轻松，适合第一杯。",
+  "Dry Martini":"以金酒和干味美思为核心，冰镇搅拌后用橄榄或柠檬皮点香。它不是甜味“马天尼”，而是一杯干燥、清冽、酒精存在感很高的经典短饮。",
+  "Espresso Martini":"伏特加、咖啡利口酒与浓缩咖啡摇出细密泡沫，兼有烘焙苦香和甜味。它很适合想要甜点感的人，但咖啡因并不能抵消酒精或让人真正清醒。",
+  "Cosmopolitan":"常用柑橘伏特加、橙味利口酒、蔓越莓与青柠，颜色醒目但核心是酸甜平衡。它比外表更干爽，适合喜欢莓果香、又不想喝成甜果汁的人。",
+  "Margarita":"龙舌兰、橙味利口酒和青柠构成经典酸酒，杯口盐能放大柑橘与植物感。好喝的版本应有清楚酸度与龙舌兰味，不只是冰沙或糖浆。",
+  "Paloma":"通常把龙舌兰与葡萄柚汽水或葡萄柚、青柠、苏打组合。它比 Margarita 更像清爽长饮，带果皮微苦和气泡，适合炎热天气与慢速社交。",
+  "Mojito":"白朗姆、薄荷、青柠、糖和苏打组成的古巴长饮。薄荷应提供香气而不是被捣成苦叶碎，整体清爽、带气泡，适合第一次接触朗姆酒的人。",
+  "Daiquiri":"真正的经典 Daiquiri 很简单：朗姆、青柠和糖，摇匀后滤入冰镇杯；它并不等于草莓冰沙。配方越简单，朗姆品质与酸甜平衡越容易被喝出来。",
+  "Old Fashioned":"用威士忌、糖、苦精和少量水构成，是理解“烈酒主导型”鸡尾酒的好入口。冰块融化会逐渐打开香气，甜味只是修饰，不应盖住橡木和谷物。",
+  "Manhattan":"常以黑麦或波本威士忌、甜味美思和苦精搅拌，带香料、草本与樱桃联想。它比 Old Fashioned 更圆润芳香，却仍是一杯酒精度较高的短饮。",
+  "Whiskey Sour":"威士忌、柠檬与糖构成酸酒骨架，可加入蛋白形成绵密泡沫。酸度会让威士忌更易入口，但不会降低实际酒精量，适合喜欢柑橘与木质味的人。",
+  "Highball":"把威士忌与大量冰、冰冷苏打轻轻结合，日式酒吧尤其重视温度、气泡和搅拌。它清爽、酒精度相对低，但精彩之处在于细腻而不是“威士忌兑水”。",
+  "Boulevardier":"波本或黑麦、Campari 与甜味美思组成，可理解为威士忌版 Negroni。谷物与橡木让苦甜更厚、更温暖，适合天气偏冷或想慢慢结束一晚的时候。",
+  "Aperol Spritz":"Aperol、Prosecco 和苏打构成意式开胃长饮，颜色鲜橙，常带橙皮、草本与轻微苦味。气泡活泼、酒精度不高，适合开场而不是追求烈度。",
+  "French 75":"金酒、柠檬、糖与起泡酒结合，名字来自第一次世界大战时期法国 75 毫米野战炮的力量联想。它喝起来轻盈明亮，但气泡下藏着金酒，速度要慢。",
+  "Tom Collins":"金酒、柠檬、糖和苏打装入高杯，是经典 Collins 长饮。它像更有结构的酒精柠檬汽水，清爽易懂，适合不熟悉草本型金酒的人。",
+  "Gin Fizz":"金酒、柠檬、糖与苏打的 Fizz 家族成员，重点是摇和后产生的轻盈口感；部分版本会加入蛋白。与 Tom Collins 相近，但传统杯型和制作逻辑略有不同。",
+  "Moscow Mule":"伏特加、姜汁啤酒和青柠组成，常用铜杯呈现；姜汁啤酒通常是无酒精的辛辣汽水。伏特加保持干净，姜的刺激和气泡才是主角。",
+  "Bloody Mary":"伏特加与番茄汁为基础，常加入柠檬、伍斯特酱、辣椒、盐和胡椒。它更像咸鲜、辛香的液体料理，适合早午餐或喜欢番茄与香料的人。",
+  "Pisco Sour":"南美葡萄蒸馏酒 Pisco 搭配柑橘、糖和蛋白，表面常滴苦精。口感兼具葡萄果香、酸度和奶油般泡沫，是秘鲁与智利都极具代表性的鸡尾酒。",
+  "Caipirinha":"巴西经典以甘蔗蒸馏酒 Cachaça、青柠和糖直接在杯中制作。Cachaça 有青草、甘蔗与发酵感，青柠皮油带一点苦，风格比普通朗姆长饮更野生。",
+  "Mai Tai":"经典 Tiki 配方以多种朗姆、青柠、橙味利口酒和杏仁糖浆 Orgeat 构成。它不是随意混合的热带果汁，优秀版本会同时展现朗姆层次、坚果香和清晰酸度。",
+  "Piña Colada":"朗姆、椰子与菠萝构成波多黎各代表性热带饮品，常做成冰沙或摇和版本。口感奶油甜润，适合喜欢甜品感的人，但浓稠不等于酒精低。",
+  "Cuba Libre":"朗姆、可乐和青柠看似简单，但青柠使它区别于普通 Rum & Coke。焦糖、香料、柑橘与气泡很容易理解，是认识朗姆长饮的友好入口。",
+  "Long Island Iced Tea":"把伏特加、金酒、朗姆、龙舌兰、橙味利口酒、柑橘和可乐混合；名字里没有真正的茶。味道可能像冰茶，但烈酒种类多、实际强度高，应慢饮。",
+  "Sidecar":"干邑或白兰地、橙味利口酒与柠檬组成的经典酸酒，常见糖边装饰。葡萄蒸馏酒的干果与橡木被柑橘提亮，风格优雅但并不轻。",
+  "Sazerac":"新奥尔良经典，常用黑麦威士忌或干邑、糖、Peychaud’s 苦精，并以 Absinthe 涮杯。香气带茴香与香料，几乎没有果汁，是非常烈酒导向的选择。",
+  "Mint Julep":"波本、薄荷、糖和大量碎冰组成，与美国肯塔基赛马会联系紧密。碎冰让杯壁结霜并逐步稀释威士忌，薄荷重在闻香，不宜被捣得发苦。",
+  "Penicillin":"现代经典把调和苏格兰威士忌、柠檬、蜂蜜和姜结合，并常以泥煤威士忌漂浮增添烟熏。它同时有辛辣、酸甜和烟感，像一杯有火气的蜂蜜姜茶。",
+  "Paper Plane":"等份波本、Aperol、Amaro Nonino 与柠檬构成的现代苦甜酸酒。颜色轻快，味道却包含柑橘、草本和威士忌，适合想尝苦味但怕 Negroni 太重的人。",
+  "Aviation":"金酒、柠檬、Maraschino 樱桃利口酒和紫罗兰利口酒组成，淡紫色来自少量花香利口酒。它应是清爽酸酒带花香点缀，而不是香水般浓甜。",
+  "Last Word":"经典上常将金酒、绿 Chartreuse、Maraschino 和青柠等份摇和。草本、甜、酸与酒精同时很强，却能彼此制衡，适合喜欢复杂药草香的人。",
+  "Vesper":"因《皇家赌场》中的 James Bond 而知名，以金酒、伏特加和 Kina Lillet 的现代替代品构成。它比普通 Martini 更强、更直接，文化故事有趣，但绝不是轻松长饮。",
+  "Clover Club":"金酒、覆盆子、柠檬和蛋白组成，得名于费城同名绅士俱乐部。莓果让颜色柔和，蛋白带来丝滑泡沫，但骨架仍是一杯清楚的金酒酸酒。",
+  "Bellini":"源自威尼斯 Harry’s Bar，以白桃泥和 Prosecco 调制。它果香柔软、气泡轻盈，传统重点是成熟白桃而非人工桃味糖浆，适合早场或庆祝。",
+  "Mimosa":"起泡酒与橙汁的经典早午餐组合，比例会因场合变化。它简单、果味直观，最好保持冰冷并避免过甜；轻松易喝也意味着容易不知不觉喝快。",
+  "Pornstar Martini":"现代流行鸡尾酒，通常以香草伏特加、百香果和甜酸元素调制，旁边配一小杯起泡酒。百香果香强烈、甜点感明显，起泡酒通常分开啜饮而非必须倒入。",
+  "Irish Coffee":"热咖啡、爱尔兰威士忌、糖与轻盈奶油组成，奶油漂浮在表面，饮用时咖啡穿过冷奶油。它兼具甜点与热饮感，但咖啡同样不会抵消酒精。",
+  "Dark ’n’ Stormy":"以深色朗姆和姜汁啤酒组成，常加青柠；这个名称与 Goslings 商标传统有关。深色糖蜜、香料和姜的辛辣非常鲜明，适合喜欢强烈长饮的人。",
+  "IPA":"India Pale Ale 的现代版本通常突出啤酒花香气与苦味，可出现柑橘、松针、热带水果或树脂感。不同地区差异很大，但总体比普通拉格更香、更苦、更有存在感。",
+  "Lager":"使用低温发酵并经过熟成的啤酒大类，常见干净、清脆、麦芽与啤酒花平衡的风格。它不等于“淡而无味”，从轻型拉格到深色、强劲版本都存在。",
+  "Stout":"以烘烤麦芽或大麦带来咖啡、可可、焦香和深色外观的艾尔啤酒。口感可能干爽也可能奶油甜润，颜色很深并不自动代表酒精度特别高。",
+  "Champagne":"只有来自法国香槟区并符合法规的起泡酒才能称 Champagne，通常通过瓶中二次发酵获得气泡。除柑橘与苹果外，陈年还可能出现面包、坚果和酵母香。",
+  "Natural Red Wine":"“自然酒”没有全球统一法律定义，通常指强调有机/低干预种植与酿造、较少添加的葡萄酒。风格可能清新多汁，也可能带浑浊或发酵感，不能仅凭标签判断品质。",
+  "Junmai Sake":"Junmai 是只以米、米曲和水酿造、未添加酿造酒精的清酒类别。清酒通过米曲将淀粉转糖并同步发酵，工艺更接近复杂酿造，而不是简单的“米葡萄酒”。",
+  "Baijiu":"中国白酒以高粱等谷物和酒曲发酵后蒸馏，存在酱香、浓香、清香等差异很大的香型。常见酒精度高，香气可能有水果、发酵粮、酱香或窖香，适合小杯品饮。",
+  "Single Malt Whisky":"指在同一家蒸馏厂、以发芽大麦为原料生产的麦芽威士忌；它可以混合多个年份与橡木桶，并不等于“单桶”。常见麦芽、果干、香料、橡木或烟熏风味。",
+  "Agave Spirit Flight":"把 Tequila、Mezcal 或其他龙舌兰蒸馏酒少量并排品尝，比较植物品种、产区、烹煮与蒸馏差异。并非所有 Mezcal 都强烈烟熏，重点是慢闻慢尝而不是连续 Shot。",
+  "Zero-proof Tonic":"以无酒精植物蒸馏液、柑橘和汤力水构成，保留苦味、香气与气泡，却不加入酒精。适合想参与举杯和风味体验、同时保持完整判断力的人。",
+};
+
+const DRINK_BASE = [
   {name:"Negroni",base:"Gin · Vermouth · Campari",family:"苦甜经典",abv:24,mark:"N"},
   {name:"Americano",base:"Campari · Vermouth · Soda",family:"低度开胃",abv:12,mark:"A"},
   {name:"Dry Martini",base:"Gin · Dry Vermouth",family:"烈酒短饮",abv:29,mark:"M"},
@@ -167,6 +275,8 @@ export const DRINKS: Drink[] = [
   {name:"Agave Spirit Flight",base:"Tequila · Mezcal",family:"龙舌兰品鉴",abv:40,mark:"AG"},
   {name:"Zero-proof Tonic",base:"Botanical · Citrus · Tonic",family:"无酒精",abv:0,mark:"0%"},
 ];
+
+export const DRINKS: Drink[] = DRINK_BASE.map((item) => ({ ...item, description: DRINK_DESCRIPTIONS[item.name] }));
 
 const P0 = [
   "FIRST LIGHT|雨水留在门外|你推开{bar}的门，伞尖滴下三滴水。寄存处的人递来号码牌，{track}的低频从地板升到锁骨，第一杯{drink}刚好在吧台亮起。",
